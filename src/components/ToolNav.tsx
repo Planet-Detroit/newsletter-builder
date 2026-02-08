@@ -1,3 +1,5 @@
+"use client";
+
 export default function ToolNav() {
   return (
     <nav style={{ background: "#1e293b", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", height: "32px", fontFamily: "Arial, Helvetica, sans-serif" }}>
