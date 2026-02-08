@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { NewsletterProvider } from "@/context/NewsletterContext";
+import ToolNav from "@/components/ToolNav";
 
 export const metadata: Metadata = {
   title: "Planet Detroit Newsletter Builder",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased" suppressHydrationWarning>
+        <ToolNav />
         <NewsletterProvider>
           {children}
         </NewsletterProvider>
