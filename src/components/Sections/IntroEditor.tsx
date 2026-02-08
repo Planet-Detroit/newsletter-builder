@@ -1,0 +1,319 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useNewsletter } from "@/context/NewsletterContext";
+import { STAFF_MEMBERS } from "@/types/newsletter";
+
+/** Convert any leftover markdown bold/italic to HTML */
+function mdToHtml(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/_(.+?)_/g, "<em>$1</em>");
+}
+
+export default function IntroEditor() {
+  const { state, dispatch } = useNewsletter();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isInternalUpdate = useRef(false);
+
+  const sectionStatus = state.sections.find((s) => s.id === "intro")?.status;
+  const selectedStaff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
+
+  // Sync state → contentEditable (only when change comes from outside, e.g. AI generation)
+  useEffect(() => {
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false;
+      return;
+    }
+    const el = editorRef.current;
+    if (el && el.innerHTML !== state.intro) {
+      el.innerHTML = state.intro || "";
+    }
+  }, [state.intro]);
+
+  /** Read HTML from the contentEditable div and push to state */
+  const handleInput = useCallback(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    isInternalUpdate.current = true;
+    dispatch({ type: "SET_INTRO", payload: el.innerHTML });
+  }, [dispatch]);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setError(null);
+    dispatch({ type: "UPDATE_SECTION_STATUS", payload: { id: "intro", status: "loading" } });
+
+    try {
+      const res = await fetch("/api/intro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pdPosts: state.pdPosts,
+          curatedStories: state.curatedStories,
+          events: state.events,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `API returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      // Convert any markdown formatting to HTML
+      const cleanIntro = mdToHtml(data.intro);
+      // Setting state will trigger the useEffect above to update contentEditable
+      dispatch({ type: "SET_INTRO", payload: cleanIntro });
+      setSubjectOptions(data.subjectLines || []);
+      dispatch({ type: "UPDATE_SECTION_STATUS", payload: { id: "intro", status: "needs_attention" } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Generation failed";
+      setError(msg);
+      dispatch({ type: "UPDATE_SECTION_STATUS", payload: { id: "intro", status: "empty" } });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const pickSubjectLine = (line: string) => {
+    dispatch({ type: "SET_SUBJECT_LINE", payload: line });
+  };
+
+  /* ── Formatting commands (WYSIWYG via execCommand) ── */
+  const execFmt = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    // Read updated HTML back to state
+    handleInput();
+  };
+
+  const handleBold = () => execFmt("bold");
+  const handleItalic = () => execFmt("italic");
+  const handleLink = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    const url = prompt("Enter URL:", "https://");
+    if (!url) return;
+    execFmt("createLink", url);
+  };
+
+  /** Handle paste: strip everything except basic formatting */
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData("text/html");
+    const text = e.clipboardData.getData("text/plain");
+
+    if (html) {
+      // Strip to only allow basic tags
+      const cleaned = html
+        .replace(/<(?!\/?(?:strong|em|b|i|a|br|p|div)\b)[^>]*>/gi, "")
+        .replace(/ style="[^"]*"/gi, "")
+        .replace(/ class="[^"]*"/gi, "");
+      document.execCommand("insertHTML", false, cleaned);
+    } else {
+      document.execCommand("insertText", false, text);
+    }
+    handleInput();
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Subject line */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          Subject Line
+        </label>
+        <input
+          type="text"
+          value={state.subjectLine}
+          onChange={(e) => dispatch({ type: "SET_SUBJECT_LINE", payload: e.target.value })}
+          placeholder="Generate intro first to get AI suggestions..."
+          className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+        />
+        <p className="text-xs text-pd-muted mt-1">{state.subjectLine.length} characters</p>
+      </div>
+
+      {/* Subject line suggestions */}
+      {subjectOptions.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="block text-xs font-medium text-pd-muted uppercase tracking-wider">
+            AI Suggestions — click to use
+          </label>
+          {subjectOptions.map((line, i) => (
+            <button
+              key={i}
+              onClick={() => pickSubjectLine(line)}
+              className={`w-full text-left px-3 py-2 text-sm rounded-lg border transition-colors ${
+                state.subjectLine === line
+                  ? "border-pd-blue bg-pd-blue-50 text-pd-blue-dark"
+                  : "border-pd-border hover:border-pd-blue hover:bg-pd-blue-50"
+              }`}
+            >
+              {line}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* AI Generate */}
+      <button
+        onClick={handleGenerate}
+        disabled={isGenerating}
+        className="w-full px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+        style={{ background: isGenerating ? "var(--pd-muted)" : "var(--pd-blue)" }}
+      >
+        {isGenerating ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            Writing with Claude...
+          </span>
+        ) : (
+          "Generate Intro + Subject Lines with Claude"
+        )}
+      </button>
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-sm text-red-700">{error}</p>
+          {error.includes("API") && (
+            <p className="text-xs text-red-500 mt-1">
+              Make sure ANTHROPIC_API_KEY is set in your .env.local file.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* WYSIWYG Editor */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          Editor&apos;s Letter
+        </label>
+
+        {/* Fixed greeting */}
+        <div className="px-3 py-2 bg-slate-50 border border-pd-border border-b-0 rounded-t-lg text-sm text-foreground font-medium">
+          Dear Planet Detroiter,
+        </div>
+
+        {/* Formatting toolbar */}
+        <div className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 border-x border-pd-border">
+          <button
+            onMouseDown={(e) => { e.preventDefault(); handleBold(); }}
+            className="px-2.5 py-1 text-xs font-bold rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+            title="Bold"
+          >
+            B
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); handleItalic(); }}
+            className="px-2.5 py-1 text-xs italic rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+            title="Italic"
+          >
+            I
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); handleLink(); }}
+            className="px-2.5 py-1 text-xs rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+            style={{ color: "var(--pd-blue)" }}
+            title="Insert link"
+          >
+            Link
+          </button>
+          <div className="w-px h-4 bg-pd-border mx-1" />
+          <span className="text-[10px] text-pd-muted">Select text, then click a button</span>
+        </div>
+
+        {/* contentEditable WYSIWYG area */}
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
+          onPaste={handlePaste}
+          data-placeholder="Write or generate the body of your intro (the greeting is added automatically)..."
+          className="w-full px-3 py-3 border border-pd-border border-t-0 rounded-b-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue leading-relaxed min-h-[200px] overflow-y-auto"
+          style={{
+            maxHeight: "400px",
+            color: "var(--foreground)",
+          }}
+        />
+        <style>{`
+          [contenteditable]:empty::before {
+            content: attr(data-placeholder);
+            color: var(--pd-muted);
+            pointer-events: none;
+            display: block;
+          }
+          [contenteditable] a {
+            color: #2982C4;
+            text-decoration: underline;
+          }
+          [contenteditable]:focus {
+            border-color: var(--pd-blue);
+          }
+        `}</style>
+      </div>
+
+      {/* ── Signoff ── */}
+      <div className="border border-pd-border rounded-lg p-4 bg-slate-50/60">
+        <label className="block text-sm font-medium text-foreground mb-2">Signoff</label>
+        <select
+          value={state.signoffStaffId}
+          onChange={(e) => dispatch({ type: "SET_SIGNOFF_STAFF", payload: e.target.value })}
+          className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue bg-white mb-3"
+        >
+          {STAFF_MEMBERS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name} — {m.title}
+            </option>
+          ))}
+        </select>
+
+        {/* Signoff preview */}
+        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-pd-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selectedStaff.photoUrl}
+            alt={selectedStaff.name}
+            style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+          />
+          <div>
+            <p className="text-sm text-pd-muted italic">Thanks for reading,</p>
+            <p className="text-sm font-semibold text-foreground">{selectedStaff.name}</p>
+            <p className="text-xs text-pd-muted">{selectedStaff.title}</p>
+          </div>
+        </div>
+        <p className="text-xs text-pd-muted mt-2">
+          Tip: Update staff photos in <code className="bg-slate-200 px-1 rounded">src/types/newsletter.ts</code> under STAFF_MEMBERS.
+        </p>
+      </div>
+
+      {state.intro && (
+        <button
+          onClick={() =>
+            dispatch({
+              type: "UPDATE_SECTION_STATUS",
+              payload: { id: "intro", status: sectionStatus === "ready" ? "needs_attention" : "ready" },
+            })
+          }
+          className="w-full px-4 py-2 text-sm font-medium rounded-lg border-2 transition-colors cursor-pointer"
+          style={
+            sectionStatus === "ready"
+              ? { borderColor: "var(--pd-success)", background: "var(--pd-success)", color: "#fff" }
+              : { borderColor: "var(--pd-success)", color: "var(--pd-success)" }
+          }
+        >
+          {sectionStatus === "ready" ? "✓ Ready — click to unmark" : "Mark as Ready"}
+        </button>
+      )}
+    </div>
+  );
+}
