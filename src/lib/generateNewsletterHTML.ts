@@ -136,41 +136,42 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     ? `<img src="${state.logoUrl}" alt="Planet Detroit" style="max-width:280px;height:auto;display:block;margin:0 auto 8px;" />`
     : `<h1 style="color:#1e293b;font-size:28px;margin:0;letter-spacing:1px;">PLANET DETROIT</h1>`;
 
-  // Environmental data strip
+  // Environmental data strip — black & white minimalist with source links
   let envStrip = "";
   if (state.co2 || state.airQuality || state.lakeLevels) {
     const cells: string[] = [];
     if (state.co2) {
-      cells.push(`<td style="text-align:center;padding:4px 8px;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">CO&#8322;</div><div style="font-size:14px;font-weight:bold;color:#2982C4;">${state.co2.current} <span style="font-size:10px;font-weight:normal;">ppm</span></div><div style="font-size:10px;color:#ef4444;">+${state.co2.change} YoY</div></td>`);
+      const changeSign = state.co2.change > 0 ? "+" : "";
+      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://gml.noaa.gov/ccgg/trends/weekly.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">CO&#8322;</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.co2.current}</div><div style="font-size:9px;color:#666;">${changeSign}${state.co2.change} ppm YoY</div></a></td>`);
     }
     if (state.airQuality) {
-      cells.push(`<td style="text-align:center;padding:4px 8px;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Detroit Air</div><div style="font-size:14px;font-weight:bold;color:${state.airQuality.color};">${state.airQuality.category}</div><div style="font-size:10px;color:#64748b;">AQI ${state.airQuality.aqi}</div></td>`);
+      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.airnow.gov/?city=Detroit&state=MI" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Detroit Air</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.airQuality.aqi}</div><div style="font-size:9px;color:#666;">${state.airQuality.category}</div></a></td>`);
     }
     if (state.lakeLevels && state.lakeLevels.erie != null) {
       const arrow = state.lakeLevels.erieChange != null
-        ? (state.lakeLevels.erieChange > 0 ? "↑" : state.lakeLevels.erieChange < 0 ? "↓" : "→")
+        ? (state.lakeLevels.erieChange > 0 ? "\u2191" : state.lakeLevels.erieChange < 0 ? "\u2193" : "\u2192")
         : "";
       const changeText = state.lakeLevels.erieChange != null
-        ? `<div style="font-size:10px;color:#64748b;">${arrow}${Math.abs(state.lakeLevels.erieChange)}m</div>`
+        ? `${arrow}${Math.abs(state.lakeLevels.erieChange)}m`
         : "";
-      cells.push(`<td style="text-align:center;padding:4px 8px;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Lake Erie</div><div style="font-size:14px;font-weight:bold;color:#2982C4;">${state.lakeLevels.erie}m</div>${changeText}</td>`);
+      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.glerl.noaa.gov/data/wlevels/levels.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Lake Erie</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.lakeLevels.erie}m</div>${changeText ? `<div style="font-size:9px;color:#666;">${changeText}</div>` : ""}</a></td>`);
     }
     if (state.lakeLevels && state.lakeLevels.michiganHuron != null) {
       const arrow = state.lakeLevels.michiganHuronChange != null
-        ? (state.lakeLevels.michiganHuronChange > 0 ? "↑" : state.lakeLevels.michiganHuronChange < 0 ? "↓" : "→")
+        ? (state.lakeLevels.michiganHuronChange > 0 ? "\u2191" : state.lakeLevels.michiganHuronChange < 0 ? "\u2193" : "\u2192")
         : "";
       const changeText = state.lakeLevels.michiganHuronChange != null
-        ? `<div style="font-size:10px;color:#64748b;">${arrow}${Math.abs(state.lakeLevels.michiganHuronChange)}m</div>`
+        ? `${arrow}${Math.abs(state.lakeLevels.michiganHuronChange)}m`
         : "";
-      cells.push(`<td style="text-align:center;padding:4px 8px;"><div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;">Michigan-Huron</div><div style="font-size:14px;font-weight:bold;color:#2982C4;">${state.lakeLevels.michiganHuron}m</div>${changeText}</td>`);
+      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.glerl.noaa.gov/data/wlevels/levels.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">MI-Huron</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.lakeLevels.michiganHuron}m</div>${changeText ? `<div style="font-size:9px;color:#666;">${changeText}</div>` : ""}</a></td>`);
     }
-    // Add border-right to all cells except last
+    // Add thin separator between cells
     const styledCells = cells.map((cell, i) =>
       i < cells.length - 1
-        ? cell.replace('<td style="text-align:center;padding:4px 8px;">', '<td style="text-align:center;padding:4px 8px;border-right:1px solid #dde8f0;">')
+        ? cell.replace('<td style="text-align:center;padding:6px 10px;">', '<td style="text-align:center;padding:6px 10px;border-right:1px solid #e0e0e0;">')
         : cell
     );
-    envStrip = `<div style="background:#f0f7fc;padding:12px 16px;border-radius:8px;margin-top:12px;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr>${styledCells.join("")}</tr></table></div>`;
+    envStrip = `<div style="border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;padding:10px 0;margin-top:16px;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr>${styledCells.join("")}</tr></table></div>`;
   }
 
   // Sponsors
@@ -298,15 +299,15 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   // Ad slot: after-reading
   parts.push(renderAdsForPosition(state.ads, "after-reading"));
 
-  // Jobs
+  // Jobs — single-line format: Title | Organization
   if (selectedJobs.length > 0) {
     const PARTNER_LINK = "https://planetdetroit.org/impactpartners/";
     const tierBadge = (tier: string | null) => {
-      if (tier === "champion") return `<a href="${PARTNER_LINK}" style="display:inline-block;background:#e8f4fd;color:#2982C4;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;text-decoration:none;margin-right:6px;">Planet Champion</a>`;
-      if (tier === "partner") return `<a href="${PARTNER_LINK}" style="display:inline-block;background:#ecfdf5;color:#16a34a;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;text-decoration:none;margin-right:6px;">Impact Partner</a>`;
+      if (tier === "champion") return ` <a href="${PARTNER_LINK}" style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#2982C4;text-decoration:none;border:1px solid #2982C4;padding:1px 5px;border-radius:3px;margin-left:8px;">Planet Champion</a>`;
+      if (tier === "partner") return ` <a href="${PARTNER_LINK}" style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#16a34a;text-decoration:none;border:1px solid #16a34a;padding:1px 5px;border-radius:3px;margin-left:8px;">Impact Partner</a>`;
       return "";
     };
-    const featuredBadge = `<span style="display:inline-block;background:#fef3c7;color:#b45309;font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;margin-right:6px;">&#9733; Featured</span>`;
+    const featuredBadge = `<span style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#b45309;border:1px solid #b45309;padding:1px 5px;border-radius:3px;margin-left:8px;">&#9733; Featured</span>`;
 
     parts.push(`
 <div style="padding:16px 32px;">
@@ -316,15 +317,13 @@ export function generateNewsletterHTML(state: NewsletterState): string {
       (j) => {
         const isFeatured = j.featured;
         const badges = `${isFeatured ? featuredBadge : ""}${tierBadge(j.partnerTier)}`;
-        const wrapStyle = isFeatured
-          ? `margin-bottom:12px;padding:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;`
-          : `margin-bottom:12px;`;
-        return `<div style="${wrapStyle}">
-    ${badges ? `<div style="margin-bottom:4px;">${badges}</div>` : ""}
-    <div style="font-weight:bold;font-size:14px;">${j.url ? `<a href="${j.url}" style="color:#2982C4;text-decoration:none;">${j.title}</a>` : j.title}</div>
-    ${j.organization ? `<div style="font-size:12px;color:#2982C4;">${j.organization}</div>` : ""}
-    ${j.description && (isFeatured || state.jobsShowDescriptions !== false) ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${j.description}</div>` : ""}
-  </div>`;
+        const titleText = j.url
+          ? `<a href="${j.url}" style="color:#1e293b;text-decoration:none;">${j.title}</a>`
+          : j.title;
+        const line = j.organization
+          ? `${titleText} <span style="color:#94a3b8;">|</span> ${j.organization}`
+          : titleText;
+        return `<div style="margin-bottom:8px;font-size:14px;color:#1e293b;">${line}${badges}</div>`;
       }
     )
     .join("")}
@@ -381,7 +380,6 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   <p style="color:rgba(255,255,255,0.9);font-size:12px;font-style:italic;margin:6px 0;">Stay informed about your environment and your health.</p>
   <div style="margin:12px 0 8px;" role="navigation" aria-label="Social media links">${socialIconsHTML}</div>
   <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:8px 0 4px;">The Green Garage &middot; 4444 Second Avenue, Detroit, MI 48201</p>
-  <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:8px 0 0;"><a href="{{unsubscribe}}" style="color:#2982C4;">Unsubscribe</a> &middot; <a href="{{preferences}}" style="color:#2982C4;">Update Preferences</a></p>
 </div>`);
 
   // Document close
