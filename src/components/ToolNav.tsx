@@ -1,8 +1,13 @@
 "use client";
 
 export default function ToolNav() {
+  async function handleSignOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   return (
-    <nav style={{ background: "#1e293b", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", height: "32px", fontFamily: "Arial, Helvetica, sans-serif" }}>
+    <nav style={{ background: "#1e293b", padding: "0 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px", height: "32px", fontFamily: "Arial, Helvetica, sans-serif", position: "relative" }}>
       <span style={{ fontSize: "11px", color: "#94a3b8", letterSpacing: "0.5px", marginRight: "12px", textTransform: "uppercase", fontWeight: "bold" }}>
         PD Tools
       </span>
@@ -20,6 +25,14 @@ export default function ToolNav() {
       >
         Newsletter Builder
       </span>
+      <button
+        onClick={handleSignOut}
+        style={{ position: "absolute", right: "16px", fontSize: "11px", color: "#64748b", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", transition: "color 0.15s", fontFamily: "inherit" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#94a3b8")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#64748b")}
+      >
+        Sign out
+      </button>
     </nav>
   );
 }
