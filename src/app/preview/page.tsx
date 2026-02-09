@@ -4,10 +4,23 @@ import { useState } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { generateNewsletterHTML } from "@/lib/generateNewsletterHTML";
 
+async function compressToHash(text: string): Promise<string> {
+  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("deflate"));
+  const compressed = await new Response(stream).arrayBuffer();
+  const bytes = new Uint8Array(compressed);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return encodeURIComponent(btoa(binary));
+}
+
 export default function PreviewPage() {
   const { state } = useNewsletter();
   const [view, setView] = useState<"desktop" | "mobile">("desktop");
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const html = generateNewsletterHTML(state);
 
@@ -15,6 +28,21 @@ export default function PreviewPage() {
     await navigator.clipboard.writeText(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShareLink = async () => {
+    setSharing(true);
+    try {
+      const hash = await compressToHash(html);
+      const url = `${window.location.origin}/newsletter-preview#${hash}`;
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      alert("Failed to generate share link.");
+    } finally {
+      setSharing(false);
+    }
   };
 
   const handleDownload = () => {
@@ -54,6 +82,17 @@ export default function PreviewPage() {
                 Mobile
               </button>
             </div>
+            <button
+              onClick={handleShareLink}
+              disabled={sharing}
+              className="px-4 py-2 text-sm font-medium rounded-lg border transition-colors"
+              style={shareCopied
+                ? { borderColor: "#22c55e", color: "#22c55e", background: "#f0fdf4" }
+                : { borderColor: "#e2e8f0", color: "#64748b" }
+              }
+            >
+              {sharing ? "Generating..." : shareCopied ? "Link copied!" : "Share preview"}
+            </button>
             <button
               onClick={handleCopy}
               className="px-4 py-2 text-sm font-medium text-pd-blue border border-pd-blue rounded-lg hover:bg-pd-blue-light transition-colors"

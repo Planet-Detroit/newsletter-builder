@@ -21,19 +21,6 @@ function formatIssueDate(dateStr: string): string {
   });
 }
 
-function formatEventDate(dateStr: string): string {
-  if (!dateStr) return "";
-  try {
-    return new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
 // ── Social Icon SVGs ─────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = {
@@ -127,7 +114,7 @@ function renderAdsForPosition(ads: AdSlot[], position: AdSlot["position"]): stri
 export function generateNewsletterHTML(state: NewsletterState): string {
   const selectedPosts = state.pdPosts.filter((p) => p.selected);
   const selectedStories = state.curatedStories.filter((s) => s.selected);
-  const selectedEvents = state.events.filter((e) => e.selected);
+  const hasEventsHtml = state.eventsHtml && state.eventsHtml.replace(/<[^>]*>/g, "").trim().length > 0;
   const selectedJobs = state.jobs.filter((j) => j.selected);
   const issueDate = formatIssueDate(state.issueDate);
 
@@ -331,18 +318,13 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Events
-  if (selectedEvents.length > 0) {
+  if (hasEventsHtml) {
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("Events")}
-  ${selectedEvents
-    .map(
-      (e) => `<div style="margin-bottom:12px;padding:12px;background:#f8fafc;border-radius:6px;">
-    <div style="font-weight:bold;font-size:14px;color:#1e293b;">${e.url ? `<a href="${e.url}" style="color:#1e293b;text-decoration:none;">${e.title}</a>` : e.title}</div>
-    <div style="font-size:12px;color:#64748b;">${formatEventDate(e.date)}${e.time ? ` · ${e.time}` : ""}${e.location ? ` · ${e.location}` : ""}</div>
-  </div>`
-    )
-    .join("")}
+  <div style="font-size:14px;color:#333;line-height:1.6;">
+    ${state.eventsHtml}
+  </div>
 </div>`);
   }
 

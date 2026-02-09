@@ -41,6 +41,7 @@ const initialState: NewsletterState = {
   pdPosts: [],
   curatedStories: [],
   events: [],
+  eventsHtml: "",
   jobs: [],
   jobsShowDescriptions: true,
   ads: [],
@@ -73,6 +74,7 @@ type Action =
   | { type: "REORDER_CURATED_STORIES"; payload: { fromIndex: number; toIndex: number } }
   | { type: "REMOVE_CURATED_STORY"; payload: string }
   | { type: "SET_EVENTS"; payload: EventItem[] }
+  | { type: "SET_EVENTS_HTML"; payload: string }
   | { type: "SET_JOBS"; payload: JobListing[] }
   | { type: "SET_JOBS_SHOW_DESCRIPTIONS"; payload: boolean }
   | { type: "SET_ADS"; payload: AdSlot[] }
@@ -157,6 +159,8 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       };
     case "SET_EVENTS":
       return { ...state, events: action.payload };
+    case "SET_EVENTS_HTML":
+      return { ...state, eventsHtml: action.payload };
     case "SET_JOBS":
       return { ...state, jobs: action.payload };
     case "SET_JOBS_SHOW_DESCRIPTIONS":

@@ -4,8 +4,8 @@ import { verifyToken } from "@/lib/auth";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow login page and login API through without auth
-  if (pathname === "/login" || pathname === "/api/auth/login") {
+  // Allow public pages through without auth
+  if (pathname === "/login" || pathname === "/api/auth/login" || pathname === "/ad-preview" || pathname === "/newsletter-preview") {
     return NextResponse.next();
   }
 

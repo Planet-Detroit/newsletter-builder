@@ -176,6 +176,7 @@ export interface NewsletterState {
   pdPosts: PDPost[];
   curatedStories: CuratedStory[];
   events: EventItem[];
+  eventsHtml: string;
   jobs: JobListing[];
   jobsShowDescriptions: boolean;
   ads: AdSlot[];

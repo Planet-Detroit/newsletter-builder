@@ -4,17 +4,48 @@
 
 The Planet Detroit Newsletter Builder is a Next.js web application that streamlines the creation of Planet Detroit's email newsletter. It pulls content from WordPress, environmental APIs, and AI-powered parsing to assemble a fully formatted HTML email ready for ActiveCampaign.
 
-The app runs locally at `localhost:3000` and persists drafts in the browser's localStorage. There is no backend database. The final output is a single HTML string suitable for email clients.
+The app is deployed at `newsletter-builder-azure.vercel.app` and persists drafts in the browser's localStorage. There is no backend database. The final output is a single HTML string suitable for email clients.
 
 ---
 
 ## Architecture
 
-**Stack:** Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS
+**Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS
 
 **State management:** React Context + useReducer, with auto-save to localStorage (1-second debounce). State is loaded on mount and migrates gracefully when the schema changes between versions.
 
 **Key principle:** All newsletter styling is inline CSS in a single generator function (`generateNewsletterHTML.ts`). This is the single source of truth for the email output. No `<style>` tags are used, ensuring maximum email client compatibility.
+
+---
+
+## Authentication
+
+All pages and API routes are protected by a shared password. The system uses Next.js middleware with HMAC-SHA256 signed cookies (Web Crypto API, Edge-compatible).
+
+**How it works:**
+- Visiting any page without a valid session redirects to `/login`
+- API routes return `401 Unauthorized` without a valid session
+- On successful login, an HTTP-only signed cookie (`pd_auth`) is set for 7 days
+- The cookie is signed with `AUTH_SECRET` using HMAC-SHA256; changing the secret invalidates all sessions
+- A "Sign out" button in the ToolNav clears the cookie
+
+**Files:**
+- `src/middleware.ts` — Route protection (checks cookie on every request)
+- `src/lib/auth.ts` — Token signing/verification using Web Crypto API
+- `src/app/login/page.tsx` — Login form
+- `src/app/api/auth/login/route.ts` — Validates password, sets cookie
+- `src/app/api/auth/logout/route.ts` — Clears cookie
+
+---
+
+## Cross-Navigation (ToolNav)
+
+A slim dark navigation bar (`ToolNav.tsx`) appears at the top of every page, linking between the two Planet Detroit tools:
+
+- **Newsletter Builder** (`newsletter-builder-azure.vercel.app`) — this app
+- **Brief Generator** (`news-brief-generator.vercel.app`) — the curated news brief tool
+
+The current tool is highlighted in white; the other is a gray link. The newsletter builder's ToolNav also includes a "Sign out" button on the right. Both apps have their own copy of the component (mirrored, with the active tool swapped).
 
 ---
 
@@ -223,6 +254,8 @@ The campaign is created as a **draft** (status 0) and is never auto-sent.
 | NOAA GLERL | Great Lakes water levels | (no key needed) |
 | Brief Generator | Pre-curated news briefs | `BRIEF_GENERATOR_URL` |
 
+**Deployment:** Vercel (auto-deploys from `main` branch on GitHub at `Planet-Detroit/newsletter-builder`). Environment variables are set in the Vercel project dashboard.
+
 ---
 
 ## Environment Variables
@@ -235,11 +268,15 @@ ACTIVECAMPAIGN_API_KEY=              # ActiveCampaign v1 API key
 WORDPRESS_URL=                        # e.g., https://planetdetroit.org
 WORDPRESS_USERNAME=                  # WordPress username for basic auth
 WORDPRESS_APP_PASSWORD=              # WordPress application password
+AUTH_PASSWORD=                        # Shared newsroom login password
+AUTH_SECRET=                          # Random 64-char hex string for cookie signing
 
 # Optional
 AIRNOW_API_KEY=                      # EPA AirNow (air quality data)
 BRIEF_GENERATOR_URL=                 # External brief generator service URL
 ```
+
+Generate `AUTH_SECRET` with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
 ---
 
@@ -247,10 +284,14 @@ BRIEF_GENERATOR_URL=                 # External brief generator service URL
 
 ```
 src/
+  middleware.ts                        # Auth middleware (cookie check on all routes)
   app/
     page.tsx                          # Main dashboard
+    login/page.tsx                    # Login page (public, not protected)
     preview/page.tsx                  # Newsletter preview + export
     api/
+      auth/login/route.ts            # Login endpoint (public)
+      auth/logout/route.ts           # Logout endpoint
       activecampaign/route.ts         # Push to ActiveCampaign
       co2/route.ts                    # NOAA CO2 data
       air-quality/route.ts            # EPA AirNow data
@@ -263,6 +304,7 @@ src/
       wordpress/jobs/route.ts         # WordPress job fetch
       import-briefs/route.ts          # Brief generator import
   components/
+    ToolNav.tsx                       # Cross-navigation bar + sign out
     Dashboard/
       Header.tsx                      # Top nav + generate button
       ProgressBar.tsx                 # Section completion tracker
@@ -286,6 +328,7 @@ src/
   context/
     NewsletterContext.tsx              # State management (context + reducer)
   lib/
+    auth.ts                           # HMAC-SHA256 token signing/verification
     generateNewsletterHTML.ts         # HTML email generator (single source of truth)
   types/
     newsletter.ts                     # TypeScript interfaces + constants

@@ -1,5 +1,13 @@
 # Next Steps & Roadmap
 
+## Recently Completed
+
+- **Vercel deployment** — Live at `newsletter-builder-azure.vercel.app` with all env vars configured
+- **Authentication** — Shared password login with HMAC-SHA256 signed cookies. Middleware protects all pages and API routes. Login page at `/login`, sign-out button in ToolNav.
+- **Cross-navigation (ToolNav)** — Dark nav bar linking between Newsletter Builder and Brief Generator (`news-brief-generator.vercel.app`). Present on both apps.
+
+---
+
 ## Priority 1: Events via CitySpark
 
 ### Background
@@ -55,29 +63,7 @@ The `EventItem` interface will need `featured: boolean` and `partnerTier: Partne
 
 ---
 
-## Priority 2: Deploy to Vercel
-
-### Steps
-
-1. Create a Vercel project linked to the GitHub repo
-2. Add all environment variables in Vercel project settings:
-   - `ANTHROPIC_API_KEY`
-   - `ACTIVECAMPAIGN_API_URL` + `ACTIVECAMPAIGN_API_KEY`
-   - `WORDPRESS_URL` + `WORDPRESS_USERNAME` + `WORDPRESS_APP_PASSWORD`
-   - `AIRNOW_API_KEY`
-   - `BRIEF_GENERATOR_URL`
-3. Deploy and verify all API routes work in production
-4. Test the ActiveCampaign integration from the deployed URL
-5. Set up a custom domain if desired (e.g., newsletter.planetdetroit.org)
-
-### Considerations
-
-- localStorage persistence works fine for a single-editor workflow, but if multiple staff members will use the tool simultaneously, consider adding a shared backend (Vercel KV, Upstash Redis, or Supabase) for draft persistence
-- API routes that call external services (Claude, WordPress, ActiveCampaign) should work identically in production since they use environment variables
-
----
-
-## Priority 3: Refinements
+## Priority 2: Refinements
 
 ### Environmental Data Widget
 
@@ -87,7 +73,6 @@ The `EventItem` interface will need `featured: boolean` and `partnerTier: Partne
 
 ### Brief Generator Integration
 
-- Ensure the external brief generator service is deployed and accessible
 - Document the brief packet format for the team
 - Consider building the brief generation directly into the newsletter builder to reduce external dependencies
 
@@ -105,12 +90,12 @@ The `EventItem` interface will need `featured: boolean` and `partnerTier: Partne
 ### Multi-User Support
 
 - If multiple editors need to work on the same issue, add real-time state sync via WebSocket or polling
-- User authentication (could be as simple as a shared password or integrated with WordPress auth)
+- Per-user accounts (currently shared password; could upgrade to individual logins if needed)
 - Edit history / undo functionality
 
 ---
 
-## Priority 4: Future Features
+## Priority 3: Future Features
 
 ### Social Video Scripts
 
