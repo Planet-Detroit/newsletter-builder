@@ -3,23 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { AdSlot } from "@/types/newsletter";
-
-interface ACCampaign {
-  id: string;
-  name: string;
-  sendDate: string | null;
-  status: string;
-  sendCount: number;
-  opens: number;
-  clicks: number;
-}
-
-interface ACLinkStat {
-  url: string;
-  name: string;
-  clicks: number;
-  uniqueClicks: number;
-}
+import type { ACCampaign, ACLinkStat } from "@/types/ads";
 
 const POSITIONS = [
   { value: "after-intro" as const, label: "After Intro" },
@@ -115,6 +99,9 @@ export default function AdManager() {
   const [linkStats, setLinkStats] = useState<ACLinkStat[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
   const [showTracker, setShowTracker] = useState(false);
+  const [snapNote, setSnapNote] = useState("");
+  const [snapSaving, setSnapSaving] = useState(false);
+  const [snapSaved, setSnapSaved] = useState(false);
 
   const fetchCampaigns = useCallback(async () => {
     setAcLoading(true);
@@ -149,6 +136,34 @@ export default function AdManager() {
       setLinksLoading(false);
     }
   }, []);
+
+  const handleSaveSnapshot = useCallback(async () => {
+    const camp = acCampaigns.find((c) => c.id === selectedCampaignId);
+    if (!camp) return;
+    setSnapSaving(true);
+    try {
+      const openRate = camp.sendCount > 0 ? ((camp.opens / camp.sendCount) * 100).toFixed(1) : "0";
+      const res = await fetch("/api/activecampaign/snapshots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: camp.id,
+          campaignName: camp.name,
+          campaign: { sendCount: camp.sendCount, opens: camp.opens, clicks: camp.clicks, openRate },
+          links: linkStats,
+          note: snapNote,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setSnapSaved(true);
+      setSnapNote("");
+      setTimeout(() => setSnapSaved(false), 3000);
+    } catch {
+      alert("Failed to save snapshot.");
+    } finally {
+      setSnapSaving(false);
+    }
+  }, [acCampaigns, selectedCampaignId, linkStats, snapNote]);
 
   // Live-generate HTML from inputs
   const generatedHtml = useMemo(
@@ -565,6 +580,45 @@ export default function AdManager() {
               {!linksLoading && selectedCampaignId && linkStats.length === 0 && (
                 <p className="text-xs text-pd-muted mt-3">No link click data found for this campaign yet.</p>
               )}
+
+              {/* Save Snapshot */}
+              {selectedCampaignId && !linksLoading && (
+                <div className="mt-4 pt-3 border-t border-pd-border/60">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={snapNote}
+                      onChange={(e) => setSnapNote(e.target.value)}
+                      placeholder="Add a note (optional)..."
+                      maxLength={80}
+                      className="flex-1 px-3 py-2 border border-pd-border rounded-lg text-xs focus:outline-none focus:border-pd-blue bg-white"
+                    />
+                    <button
+                      onClick={handleSaveSnapshot}
+                      disabled={snapSaving || snapSaved}
+                      className="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer shrink-0"
+                      style={
+                        snapSaved
+                          ? { background: "#f0fdf4", color: "#22c55e", border: "1px solid #22c55e" }
+                          : { background: "#2982C4", color: "#ffffff", border: "1px solid #2982C4" }
+                      }
+                    >
+                      {snapSaving ? "Saving..." : snapSaved ? "✓ Saved!" : "Save Snapshot"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Ad History link */}
+            <div className="mt-3 text-center">
+              <a
+                href="/ad-history"
+                className="text-xs font-medium hover:underline"
+                style={{ color: "var(--pd-blue)" }}
+              >
+                View Ad History →
+              </a>
             </div>
           </div>
         )}
