@@ -1,8 +1,25 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { AdSlot } from "@/types/newsletter";
+
+interface ACCampaign {
+  id: string;
+  name: string;
+  sendDate: string | null;
+  status: string;
+  sendCount: number;
+  opens: number;
+  clicks: number;
+}
+
+interface ACLinkStat {
+  url: string;
+  name: string;
+  clicks: number;
+  uniqueClicks: number;
+}
 
 const POSITIONS = [
   { value: "after-intro" as const, label: "After Intro" },
@@ -40,8 +57,23 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+function addUtmParams(url: string, headline: string): string {
+  if (!url || url === "#") return url;
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.has("utm_source")) u.searchParams.set("utm_source", "newsletter");
+    if (!u.searchParams.has("utm_medium")) u.searchParams.set("utm_medium", "email");
+    if (!u.searchParams.has("utm_campaign")) u.searchParams.set("utm_campaign", "planet-detroit-newsletter");
+    if (!u.searchParams.has("utm_content")) u.searchParams.set("utm_content", headline.slice(0, 40).replace(/\s+/g, "-").toLowerCase());
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function generateAdHtml(headline: string, copy: string, ctaUrl: string, scheme: ColorScheme): string {
   const c = COLOR_SCHEMES[scheme];
+  const trackedUrl = addUtmParams(ctaUrl, headline);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <tr>
     <td style="padding:0;">
@@ -50,7 +82,7 @@ function generateAdHtml(headline: string, copy: string, ctaUrl: string, scheme: 
           <div style="display:inline-block;background:${c.tagBg};color:${c.tagText};font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-radius:3px;margin-bottom:12px;">Sponsored</div>
           <div style="font-size:18px;font-weight:bold;color:${c.headingColor};line-height:1.3;margin-bottom:10px;">${headline}</div>
           <div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:16px;">${copy}</div>
-          <a href="${ctaUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;">Learn more →</a>
+          <a href="${trackedUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;">Learn more →</a>
         </div>
       </div>
     </td>
@@ -73,6 +105,50 @@ export default function AdManager() {
   // Generated HTML (editable)
   const [editedHtml, setEditedHtml] = useState("");
   const [showHtmlEditor, setShowHtmlEditor] = useState(false);
+
+  // ActiveCampaign tracking state
+  const [acCampaigns, setAcCampaigns] = useState<ACCampaign[]>([]);
+  const [acLoading, setAcLoading] = useState(false);
+  const [acError, setAcError] = useState<string | null>(null);
+  const [acFetched, setAcFetched] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [linkStats, setLinkStats] = useState<ACLinkStat[]>([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [showTracker, setShowTracker] = useState(false);
+
+  const fetchCampaigns = useCallback(async () => {
+    setAcLoading(true);
+    setAcError(null);
+    try {
+      const res = await fetch("/api/activecampaign/campaigns");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Failed (${res.status})`);
+      }
+      const data = await res.json();
+      setAcCampaigns(data.campaigns || []);
+      setAcFetched(true);
+    } catch (err) {
+      setAcError(err instanceof Error ? err.message : "Failed to load campaigns");
+    } finally {
+      setAcLoading(false);
+    }
+  }, []);
+
+  const fetchLinkStats = useCallback(async (campaignId: string) => {
+    setLinksLoading(true);
+    setLinkStats([]);
+    try {
+      const res = await fetch(`/api/activecampaign/link-stats?campaignId=${campaignId}`);
+      if (!res.ok) throw new Error("Failed to fetch link stats");
+      const data = await res.json();
+      setLinkStats(data.links || []);
+    } catch {
+      setLinkStats([]);
+    } finally {
+      setLinksLoading(false);
+    }
+  }, []);
 
   // Live-generate HTML from inputs
   const generatedHtml = useMemo(
@@ -361,6 +437,138 @@ export default function AdManager() {
           </button>
         </div>
       )}
+
+      {/* ── Ad Performance Tracker ─────────────────────── */}
+      <div className="border-t border-pd-border pt-5">
+        <button
+          onClick={() => {
+            setShowTracker(!showTracker);
+            if (!acFetched && !showTracker) fetchCampaigns();
+          }}
+          className="flex items-center gap-2 text-sm font-medium cursor-pointer"
+          style={{ color: "var(--pd-blue)" }}
+        >
+          <span style={{ fontSize: "16px" }}>📊</span>
+          {showTracker ? "Hide" : "Show"} Ad Performance Tracker
+        </button>
+
+        {showTracker && (
+          <div className="mt-3 space-y-3">
+            <div className="p-4 bg-slate-50 rounded-lg border border-pd-border">
+              <p className="text-xs text-pd-muted mb-3">
+                Select an ActiveCampaign campaign to see link click data. Match ad CTA URLs to see how each ad performed.
+              </p>
+
+              {acError && (
+                <p className="text-xs text-red-600 mb-2">{acError}</p>
+              )}
+
+              <div className="flex gap-2">
+                <select
+                  value={selectedCampaignId}
+                  onChange={(e) => {
+                    setSelectedCampaignId(e.target.value);
+                    if (e.target.value) fetchLinkStats(e.target.value);
+                  }}
+                  className="flex-1 px-3 py-2 border border-pd-border rounded-lg text-sm bg-white focus:outline-none focus:border-pd-blue"
+                  disabled={acLoading}
+                >
+                  <option value="">
+                    {acLoading ? "Loading campaigns..." : acFetched ? "Select a campaign" : "Click to load campaigns"}
+                  </option>
+                  {acCampaigns.filter((c) => c.status === "sent").map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.sendDate ? ` — ${new Date(c.sendDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={fetchCampaigns}
+                  disabled={acLoading}
+                  className="px-3 py-2 text-xs font-medium border border-pd-border rounded-lg hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {acLoading ? "..." : "↻"}
+                </button>
+              </div>
+
+              {/* Campaign summary */}
+              {selectedCampaignId && (() => {
+                const camp = acCampaigns.find((c) => c.id === selectedCampaignId);
+                if (!camp) return null;
+                const openRate = camp.sendCount > 0 ? ((camp.opens / camp.sendCount) * 100).toFixed(1) : "0";
+                return (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <div className="text-center p-2 bg-white rounded-lg border border-pd-border">
+                      <p className="text-lg font-bold" style={{ color: "var(--pd-blue)" }}>{camp.sendCount.toLocaleString()}</p>
+                      <p className="text-[10px] text-pd-muted uppercase">Sent</p>
+                    </div>
+                    <div className="text-center p-2 bg-white rounded-lg border border-pd-border">
+                      <p className="text-lg font-bold" style={{ color: "var(--pd-blue)" }}>{openRate}%</p>
+                      <p className="text-[10px] text-pd-muted uppercase">Open Rate</p>
+                    </div>
+                    <div className="text-center p-2 bg-white rounded-lg border border-pd-border">
+                      <p className="text-lg font-bold" style={{ color: "var(--pd-blue)" }}>{camp.clicks.toLocaleString()}</p>
+                      <p className="text-[10px] text-pd-muted uppercase">Total Clicks</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Link stats table */}
+              {linksLoading && (
+                <p className="text-xs text-pd-muted mt-3">Loading link data...</p>
+              )}
+
+              {!linksLoading && linkStats.length > 0 && (
+                <div className="mt-3">
+                  <h5 className="text-xs font-medium text-foreground mb-2 uppercase tracking-wider">Link Clicks</h5>
+                  <div className="space-y-1">
+                    {linkStats.map((link, i) => {
+                      // Check if this link matches any ad CTA
+                      const matchesAd = state.ads.some((ad) => {
+                        const match = ad.htmlContent.match(/href="([^"]+)"/);
+                        return match && link.url.includes(match[1].replace(/&amp;/g, "&"));
+                      });
+                      return (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 p-2 rounded-lg text-xs"
+                          style={{
+                            background: matchesAd ? "#fef3f0" : "#ffffff",
+                            border: matchesAd ? "1px solid #ea5a39" : "1px solid #e2e8f0",
+                          }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate font-medium" style={{ color: matchesAd ? "#ea5a39" : "#1e293b" }}>
+                              {matchesAd && "📢 "}
+                              {link.url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60)}
+                            </p>
+                          </div>
+                          <div className="flex gap-3 shrink-0 text-right">
+                            <div>
+                              <span className="font-bold">{link.clicks}</span>
+                              <span className="text-pd-muted ml-1">clicks</span>
+                            </div>
+                            <div>
+                              <span className="font-bold">{link.uniqueClicks}</span>
+                              <span className="text-pd-muted ml-1">unique</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {!linksLoading && selectedCampaignId && linkStats.length === 0 && (
+                <p className="text-xs text-pd-muted mt-3">No link click data found for this campaign yet.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

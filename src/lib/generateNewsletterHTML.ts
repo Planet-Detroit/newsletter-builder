@@ -186,7 +186,9 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Planet Detroit Newsletter</title>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">${state.previewText ? `
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${state.previewText}</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>` : ""}
 <div style="max-width:600px;margin:0 auto;background:#ffffff;" role="article" aria-label="Planet Detroit Newsletter">`);
 
   // Header

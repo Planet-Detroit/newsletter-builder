@@ -27,6 +27,7 @@ const DEFAULT_SUPPORT_CTA: SupportCTA = {
 
 const initialState: NewsletterState = {
   subjectLine: "",
+  previewText: "",
   intro: "",
   psCTA: "",
   psCtaUrl: "https://donorbox.org/be-a-planet-detroiter-780440",
@@ -54,6 +55,7 @@ const initialState: NewsletterState = {
 
 type Action =
   | { type: "SET_SUBJECT_LINE"; payload: string }
+  | { type: "SET_PREVIEW_TEXT"; payload: string }
   | { type: "SET_INTRO"; payload: string }
   | { type: "SET_PS_CTA"; payload: string }
   | { type: "SET_PS_CTA_URL"; payload: string }
@@ -89,6 +91,8 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
   switch (action.type) {
     case "SET_SUBJECT_LINE":
       return { ...state, subjectLine: action.payload };
+    case "SET_PREVIEW_TEXT":
+      return { ...state, previewText: action.payload };
     case "SET_INTRO":
       return { ...state, intro: action.payload };
     case "SET_PS_CTA":

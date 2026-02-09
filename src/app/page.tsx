@@ -4,6 +4,7 @@ import { useState } from "react";
 import Header from "@/components/Dashboard/Header";
 import ProgressBar from "@/components/Dashboard/ProgressBar";
 import SectionCard from "@/components/Dashboard/SectionCard";
+import IssueManager from "@/components/Dashboard/IssueManager";
 import SectionEditor from "@/components/Sections/SectionEditor";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { NewsletterSection, TabGroup } from "@/types/newsletter";
@@ -53,9 +54,10 @@ export default function Dashboard() {
             onChange={(e) => dispatch({ type: "SET_ISSUE_DATE", payload: e.target.value })}
             className="px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
           />
-          <span className="text-sm text-pd-muted">
+          <span className="text-sm text-pd-muted flex-1">
             {formatDisplayDate(state.issueDate)}
           </span>
+          <IssueManager />
         </div>
 
         {/* Tab navigation */}

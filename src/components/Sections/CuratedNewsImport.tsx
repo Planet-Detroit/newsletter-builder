@@ -59,6 +59,17 @@ export default function CuratedNewsImport() {
     }
   };
 
+  const handleDeleteBrief = async (briefId: string) => {
+    if (!confirm("Delete this brief from the generator? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/import-briefs?id=${encodeURIComponent(briefId)}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+      setBriefs((prev) => prev.filter((b) => b.id !== briefId));
+    } catch {
+      setBriefsError("Failed to delete brief.");
+    }
+  };
+
   const handleImportBrief = (brief: BriefPacket) => {
     const newStories: CuratedStory[] = brief.articles.map((article, idx) => ({
       id: `curated-${Date.now()}-brief-${idx}`,
@@ -207,13 +218,22 @@ export default function CuratedNewsImport() {
                     {brief.articles.length} article{brief.articles.length !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleImportBrief(brief)}
-                  className="ml-3 px-3 py-1.5 text-xs font-medium text-white rounded-lg shrink-0 cursor-pointer"
-                  style={{ background: "var(--pd-blue)" }}
-                >
-                  Import
-                </button>
+                <div className="flex items-center gap-1.5 ml-3 shrink-0">
+                  <button
+                    onClick={() => handleImportBrief(brief)}
+                    className="px-3 py-1.5 text-xs font-medium text-white rounded-lg cursor-pointer"
+                    style={{ background: "var(--pd-blue)" }}
+                  >
+                    Import
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBrief(brief.id)}
+                    className="px-2 py-1.5 text-xs font-medium text-red-500 rounded-lg border border-red-200 hover:bg-red-50 transition-colors cursor-pointer"
+                    title="Delete this brief"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             ))}
           </div>

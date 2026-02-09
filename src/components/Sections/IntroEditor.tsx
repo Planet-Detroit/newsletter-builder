@@ -13,13 +13,32 @@ function mdToHtml(text: string): string {
     .replace(/_(.+?)_/g, "<em>$1</em>");
 }
 
+const INTRO_EMOJI_GROUPS = [
+  { label: "News", emojis: ["📰", "🗞️", "📢", "📣", "🔔", "⚡", "🚨", "📌", "📍", "🏛️"] },
+  { label: "Environment", emojis: ["🌍", "🌊", "🌿", "🌱", "♻️", "🌡️", "💧", "🔥", "☀️", "🌧️", "❄️", "🌳", "🐟", "🦅"] },
+  { label: "Community", emojis: ["🏘️", "🤝", "💚", "🎉", "📅", "💼", "🗳️", "⚖️", "🏗️", "🚗"] },
+  { label: "Actions", emojis: ["👉", "👆", "✅", "❌", "⚠️", "💡", "🔗", "📧", "📞", "🎯"] },
+];
+
 export default function IntroEditor() {
   const { state, dispatch } = useNewsletter();
   const [isGenerating, setIsGenerating] = useState(false);
   const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
   const isInternalUpdate = useRef(false);
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    if (!emojiOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setEmojiOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [emojiOpen]);
 
   const sectionStatus = state.sections.find((s) => s.id === "intro")?.status;
   const selectedStaff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
@@ -102,6 +121,12 @@ export default function IntroEditor() {
     if (!url) return;
     execFmt("createLink", url);
   };
+  const insertEmoji = (emoji: string) => {
+    editorRef.current?.focus();
+    document.execCommand("insertText", false, emoji);
+    handleInput();
+    setEmojiOpen(false);
+  };
 
   /** Handle paste: strip everything except basic formatting */
   const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
@@ -136,7 +161,34 @@ export default function IntroEditor() {
           placeholder="Generate intro first to get AI suggestions..."
           className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
         />
-        <p className="text-xs text-pd-muted mt-1">{state.subjectLine.length} characters</p>
+        {(() => {
+          const words = state.subjectLine.trim().split(/\s+/).filter(Boolean).length;
+          const ok = words >= 3 && words <= 5;
+          return (
+            <p className="text-xs mt-1" style={{ color: words === 0 ? "#94a3b8" : ok ? "#22c55e" : "#ef4444" }}>
+              {words} / 3–5 words{!ok && words > 0 ? (words < 3 ? " — too short" : " — too long") : ""}
+              <span style={{ color: "#94a3b8", marginLeft: "8px" }}>({state.subjectLine.length} chars)</span>
+            </p>
+          );
+        })()}
+      </div>
+
+      {/* Preview text (preheader) */}
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          Preview Text
+        </label>
+        <input
+          type="text"
+          value={state.previewText}
+          onChange={(e) => dispatch({ type: "SET_PREVIEW_TEXT", payload: e.target.value })}
+          placeholder="The snippet readers see before opening the email..."
+          className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+        />
+        <p className="text-xs text-pd-muted mt-1">
+          {state.previewText.length} / 90 chars ideal
+          {state.previewText.length > 90 && <span style={{ color: "#ef4444" }}> — may be truncated in some email clients</span>}
+        </p>
       </div>
 
       {/* Subject line suggestions */}
@@ -227,6 +279,53 @@ export default function IntroEditor() {
           >
             Link
           </button>
+          <div ref={emojiRef} style={{ position: "relative" }}>
+            <button
+              onMouseDown={(e) => { e.preventDefault(); setEmojiOpen(!emojiOpen); }}
+              className="px-2.5 py-1 text-xs rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+              title="Insert emoji"
+            >
+              😀
+            </button>
+            {emojiOpen && (
+              <div style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 50,
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                padding: "8px",
+                width: "260px",
+                maxHeight: "220px",
+                overflowY: "auto",
+              }}>
+                {INTRO_EMOJI_GROUPS.map((group) => (
+                  <div key={group.label} style={{ marginBottom: "6px" }}>
+                    <div style={{ fontSize: "10px", color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px", padding: "0 2px" }}>
+                      {group.label}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "2px" }}>
+                      {group.emojis.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); insertEmoji(emoji); }}
+                          style={{ fontSize: "18px", padding: "2px 4px", cursor: "pointer", borderRadius: "4px", border: "none", background: "transparent", lineHeight: 1 }}
+                          onMouseEnter={(e) => { (e.currentTarget.style.background = "#f1f5f9"); }}
+                          onMouseLeave={(e) => { (e.currentTarget.style.background = "transparent"); }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="w-px h-4 bg-pd-border mx-1" />
           <span className="text-[10px] text-pd-muted">Select text, then click a button</span>
         </div>
@@ -245,6 +344,26 @@ export default function IntroEditor() {
             color: "var(--foreground)",
           }}
         />
+        {(() => {
+          const textOnly = state.intro.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+          const wordCount = textOnly ? textOnly.split(/\s+/).length : 0;
+          const overLimit = wordCount > 200;
+          // Count paragraphs by looking at block-level separations in the HTML
+          const blocks = state.intro.split(/<\/?(?:p|div|br)\s*\/?>/i).filter((b) => b.replace(/<[^>]*>/g, "").trim().length > 0);
+          const paraCount = Math.max(blocks.length, textOnly ? 1 : 0);
+          return (
+            <div className="flex items-center justify-between mt-1 px-1">
+              <p className="text-xs" style={{ color: overLimit ? "#ef4444" : "#94a3b8" }}>
+                {wordCount} / 200 words{overLimit ? " — over limit" : ""}
+              </p>
+              {paraCount > 2 && (
+                <p className="text-xs" style={{ color: "#f59e0b" }}>
+                  {paraCount} paragraphs — aim for 2
+                </p>
+              )}
+            </div>
+          );
+        })()}
         <style>{`
           [contenteditable]:empty::before {
             content: attr(data-placeholder);

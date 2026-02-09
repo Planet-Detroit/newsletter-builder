@@ -156,6 +156,7 @@ export interface SupportCTA {
 
 export interface NewsletterState {
   subjectLine: string;
+  previewText: string;
   intro: string;
   psCTA: string;
   psCtaUrl: string;
