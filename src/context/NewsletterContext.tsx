@@ -80,9 +80,9 @@ type Action =
   | { type: "SET_JOBS"; payload: JobListing[] }
   | { type: "SET_JOBS_SHOW_DESCRIPTIONS"; payload: boolean }
   | { type: "SET_ADS"; payload: AdSlot[] }
-  | { type: "SET_CO2"; payload: CO2Data }
-  | { type: "SET_AIR_QUALITY"; payload: AirQualityData }
-  | { type: "SET_LAKE_LEVELS"; payload: LakeLevelData }
+  | { type: "SET_CO2"; payload: CO2Data | null }
+  | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
+  | { type: "SET_LAKE_LEVELS"; payload: LakeLevelData | null }
   | { type: "UPDATE_SECTION_STATUS"; payload: { id: string; status: SectionStatus } }
   | { type: "LOAD_STATE"; payload: NewsletterState }
   | { type: "RESET" };
