@@ -272,7 +272,7 @@ export default function AdManager() {
   // Strip HTML tags before counting words (copy is now HTML from WYSIWYG)
   const copyPlainText = copy.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ");
   const copyWords = countWords(copyPlainText);
-  const isValid = headline.trim() && copyPlainText.trim();
+  const isValid = headline.trim() || copyPlainText.trim() || imageUrl.trim() || (ctaUrl.trim() && ctaUrl !== "#");
 
   const getShareUrl = () => {
     const base = typeof window !== "undefined" ? window.location.origin : "";
