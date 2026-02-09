@@ -2,30 +2,24 @@
 
 import { useState, useEffect } from "react";
 
-async function decompressFromHash(hash: string): Promise<string> {
-  const base64 = decodeURIComponent(hash);
-  const binaryStr = atob(base64);
-  const bytes = new Uint8Array(binaryStr.length);
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i);
-  }
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
-  return await new Response(stream).text();
-}
-
 export default function NewsletterPreviewPage() {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [viewWidth, setViewWidth] = useState<"desktop" | "mobile">("desktop");
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (!hash) {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    if (!id) {
       setError(true);
       return;
     }
-    decompressFromHash(hash)
-      .then(setHtml)
+    fetch(`/api/share-preview?id=${encodeURIComponent(id)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => setHtml(data.html))
       .catch(() => setError(true));
   }, []);
 

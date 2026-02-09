@@ -5,7 +5,14 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public pages through without auth
-  if (pathname === "/login" || pathname === "/api/auth/login" || pathname === "/ad-preview" || pathname === "/newsletter-preview") {
+  // Allow public pages and public API routes through without auth
+  if (
+    pathname === "/login" ||
+    pathname === "/api/auth/login" ||
+    pathname === "/ad-preview" ||
+    pathname === "/newsletter-preview" ||
+    (pathname === "/api/share-preview" && request.method === "GET")
+  ) {
     return NextResponse.next();
   }
 

@@ -4,16 +4,6 @@ import { useState } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { generateNewsletterHTML } from "@/lib/generateNewsletterHTML";
 
-async function compressToHash(text: string): Promise<string> {
-  const stream = new Blob([text]).stream().pipeThrough(new CompressionStream("deflate"));
-  const compressed = await new Response(stream).arrayBuffer();
-  const bytes = new Uint8Array(compressed);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return encodeURIComponent(btoa(binary));
-}
 
 export default function PreviewPage() {
   const { state } = useNewsletter();
@@ -33,8 +23,14 @@ export default function PreviewPage() {
   const handleShareLink = async () => {
     setSharing(true);
     try {
-      const hash = await compressToHash(html);
-      const url = `${window.location.origin}/newsletter-preview#${hash}`;
+      const res = await fetch("/api/share-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html }),
+      });
+      if (!res.ok) throw new Error("Failed to store preview");
+      const { id } = await res.json();
+      const url = `${window.location.origin}/newsletter-preview?id=${id}`;
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
