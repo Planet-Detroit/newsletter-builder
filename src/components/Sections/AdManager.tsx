@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { AdSlot } from "@/types/newsletter";
 import type { ACCampaign, ACLinkStat } from "@/types/ads";
+import MiniWysiwyg from "./MiniWysiwyg";
 
 const POSITIONS = [
   { value: "after-intro" as const, label: "After Intro" },
@@ -55,18 +56,64 @@ function addUtmParams(url: string, headline: string): string {
   }
 }
 
-function generateAdHtml(headline: string, copy: string, ctaUrl: string, scheme: ColorScheme): string {
+interface AdHtmlOptions {
+  headline: string;
+  copy: string;
+  ctaUrl: string;
+  ctaText: string;
+  ctaUrl2: string;
+  ctaText2: string;
+  scheme: ColorScheme;
+  imageUrl: string;
+}
+
+function generateAdHtml(opts: AdHtmlOptions): string {
+  const { headline, copy, ctaUrl, ctaText, ctaUrl2, ctaText2, scheme, imageUrl } = opts;
   const c = COLOR_SCHEMES[scheme];
   const trackedUrl = addUtmParams(ctaUrl, headline);
+  const trackedUrl2 = ctaUrl2 ? addUtmParams(ctaUrl2, headline) : "";
+  const hasTwoCtas = ctaUrl2.trim() && ctaText2.trim();
+
+  // Image block (goes above headline/body)
+  const imageBlock = imageUrl.trim()
+    ? `<div style="margin-bottom:0;"><img src="${imageUrl}" alt="" style="width:100%;max-width:970px;height:auto;display:block;border-radius:8px 8px 0 0;" /></div>`
+    : "";
+
+  // CTA button(s)
+  let ctaBlock = "";
+  if (hasTwoCtas) {
+    // Two buttons: side-by-side on desktop, stacked center on narrow screens
+    // Using a table-based layout for email compatibility
+    ctaBlock = `<!--[if mso]>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr>
+<td style="padding-right:8px;"><![endif]-->
+<div style="display:inline-block;margin:4px;">
+  <a href="${trackedUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;white-space:nowrap;">${ctaText || "Learn more →"}</a>
+</div>
+<!--[if mso]></td><td><![endif]-->
+<div style="display:inline-block;margin:4px;">
+  <a href="${trackedUrl2}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;white-space:nowrap;">${ctaText2}</a>
+</div>
+<!--[if mso]></td></tr></table><![endif]-->`;
+  } else {
+    ctaBlock = `<a href="${trackedUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;">${ctaText || "Learn more →"}</a>`;
+  }
+
+  // If there's an image, use rounded top corners on image, no rounding on text area top
+  const borderTopRadius = imageUrl.trim() ? "0" : "8px";
+
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   <tr>
     <td style="padding:0;">
       <div style="border:2px solid ${c.borderColor};border-radius:8px;overflow:hidden;background:#ffffff;">
-        <div style="padding:20px 24px 16px;">
+        ${imageBlock}
+        <div style="padding:20px 24px 16px;border-radius:0 0 ${borderTopRadius} ${borderTopRadius};">
           <div style="display:inline-block;background:${c.tagBg};color:${c.tagText};font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-radius:3px;margin-bottom:12px;">Sponsored</div>
           <div style="font-size:18px;font-weight:bold;color:${c.headingColor};line-height:1.3;margin-bottom:10px;">${headline}</div>
           <div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:16px;">${copy}</div>
-          <a href="${trackedUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;">Learn more →</a>
+          <div style="text-align:center;">
+            ${ctaBlock}
+          </div>
         </div>
       </div>
     </td>
@@ -82,9 +129,44 @@ export default function AdManager() {
   const [headline, setHeadline] = useState("");
   const [copy, setCopy] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
+  const [ctaText, setCtaText] = useState("Learn more →");
+  const [ctaUrl2, setCtaUrl2] = useState("");
+  const [ctaText2, setCtaText2] = useState("");
+  const [showSecondCta, setShowSecondCta] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
   const [colorScheme, setColorScheme] = useState<ColorScheme>("blue");
   const [position, setPosition] = useState<AdSlot["position"]>("after-intro");
   const [adName, setAdName] = useState("");
+
+  // Image upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleImageUpload = useCallback(async (file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("alt_text", headline || "Ad image");
+      const res = await fetch("/api/wordpress/media", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || `Upload failed (${res.status})`);
+      }
+      const data = await res.json();
+      // Use the full-size URL from WordPress
+      setImageUrl(data.url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }, [headline]);
 
   // Generated HTML (editable)
   const [editedHtml, setEditedHtml] = useState("");
@@ -167,8 +249,17 @@ export default function AdManager() {
 
   // Live-generate HTML from inputs
   const generatedHtml = useMemo(
-    () => generateAdHtml(headline, copy, ctaUrl || "#", colorScheme),
-    [headline, copy, ctaUrl, colorScheme]
+    () => generateAdHtml({
+      headline,
+      copy,
+      ctaUrl: ctaUrl || "#",
+      ctaText,
+      ctaUrl2: showSecondCta ? ctaUrl2 : "",
+      ctaText2: showSecondCta ? ctaText2 : "",
+      scheme: colorScheme,
+      imageUrl,
+    }),
+    [headline, copy, ctaUrl, ctaText, ctaUrl2, ctaText2, showSecondCta, colorScheme, imageUrl]
   );
 
   // Use edited HTML if user has modified it, otherwise use generated
@@ -178,8 +269,10 @@ export default function AdManager() {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const headlineWords = countWords(headline);
-  const copyWords = countWords(copy);
-  const isValid = headline.trim() && copy.trim();
+  // Strip HTML tags before counting words (copy is now HTML from WYSIWYG)
+  const copyPlainText = copy.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ");
+  const copyWords = countWords(copyPlainText);
+  const isValid = headline.trim() && copyPlainText.trim();
 
   const getShareUrl = () => {
     const base = typeof window !== "undefined" ? window.location.origin : "";
@@ -187,7 +280,10 @@ export default function AdManager() {
       h: headline,
       c: copy,
       u: ctaUrl || "#",
+      ct: ctaText,
       s: colorScheme,
+      ...(imageUrl ? { img: imageUrl } : {}),
+      ...(showSecondCta && ctaUrl2 ? { u2: ctaUrl2, ct2: ctaText2 } : {}),
     });
     return `${base}/ad-preview?${params.toString()}`;
   };
@@ -229,6 +325,11 @@ export default function AdManager() {
     setHeadline("");
     setCopy("");
     setCtaUrl("");
+    setCtaText("Learn more →");
+    setCtaUrl2("");
+    setCtaText2("");
+    setShowSecondCta(false);
+    setImageUrl("");
     setAdName("");
     setEditedHtml("");
     setShowHtmlEditor(false);
@@ -251,6 +352,73 @@ export default function AdManager() {
       </div>
 
       <div className="space-y-3">
+        {/* Ad Image */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-foreground">Ad Image <span className="text-pd-muted font-normal">(optional)</span></label>
+            <span className="text-xs text-pd-muted">970 × 350px recommended</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/ad-banner.jpg"
+              className="flex-1 px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-3 py-2 text-sm font-medium border border-pd-border rounded-lg transition-colors cursor-pointer shrink-0 hover:bg-slate-50 disabled:opacity-50"
+              style={{ color: "var(--pd-blue)" }}
+              title="Upload to WordPress"
+            >
+              {uploading ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Uploading…
+                </span>
+              ) : (
+                "Upload to WP"
+              )}
+            </button>
+          </div>
+          {uploadError && (
+            <p className="text-xs text-pd-danger mt-1">{uploadError}</p>
+          )}
+          {imageUrl.trim() && (
+            <div className="mt-2 rounded-lg overflow-hidden border border-pd-border bg-slate-50 relative" style={{ maxWidth: "100%" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt="Ad preview"
+                style={{ width: "100%", height: "auto", display: "block", maxHeight: "200px", objectFit: "contain" }}
+                onError={(e) => { (e.currentTarget.style.display = "none"); }}
+              />
+              <button
+                type="button"
+                onClick={() => setImageUrl("")}
+                className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center rounded-full bg-white/90 border border-pd-border text-pd-muted hover:text-pd-danger hover:border-pd-danger transition-colors cursor-pointer text-xs"
+                title="Remove image"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Headline */}
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -268,33 +436,76 @@ export default function AdManager() {
           />
         </div>
 
-        {/* Copy */}
+        {/* Copy (WYSIWYG) */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-foreground">Copy</label>
+            <label className="text-sm font-medium text-foreground">Body Copy</label>
             <span className={`text-xs ${copyWords > 50 ? "text-pd-danger font-medium" : "text-pd-muted"}`}>
               {copyWords}/50 words
             </span>
           </div>
-          <textarea
+          <MiniWysiwyg
             value={copy}
-            onChange={(e) => setCopy(e.target.value)}
-            placeholder="Write the ad body copy here..."
-            rows={4}
-            className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue resize-y"
+            onChange={setCopy}
+            placeholder="Write the ad body copy here... (links, bold, italic supported)"
+            minHeight="80px"
+            showLink={true}
+            showEmoji={false}
           />
         </div>
 
-        {/* CTA URL */}
+        {/* Primary CTA */}
         <div>
-          <label className="text-sm font-medium text-foreground mb-1 block">CTA Link</label>
-          <input
-            type="url"
-            value={ctaUrl}
-            onChange={(e) => setCtaUrl(e.target.value)}
-            placeholder="https://planetdetroit.org"
-            className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
-          />
+          <label className="text-sm font-medium text-foreground mb-1 block">Primary CTA</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={ctaText}
+              onChange={(e) => setCtaText(e.target.value)}
+              placeholder="Learn more →"
+              className="w-1/3 px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+            />
+            <input
+              type="url"
+              value={ctaUrl}
+              onChange={(e) => setCtaUrl(e.target.value)}
+              placeholder="https://planetdetroit.org"
+              className="flex-1 px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+            />
+          </div>
+        </div>
+
+        {/* Second CTA toggle + fields */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowSecondCta(!showSecondCta)}
+            className="text-xs font-medium cursor-pointer hover:underline"
+            style={{ color: "var(--pd-blue)" }}
+          >
+            {showSecondCta ? "− Remove second CTA" : "+ Add second CTA button"}
+          </button>
+          {showSecondCta && (
+            <div className="flex gap-2 mt-2">
+              <input
+                type="text"
+                value={ctaText2}
+                onChange={(e) => setCtaText2(e.target.value)}
+                placeholder="Button text"
+                className="w-1/3 px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+              />
+              <input
+                type="url"
+                value={ctaUrl2}
+                onChange={(e) => setCtaUrl2(e.target.value)}
+                placeholder="https://..."
+                className="flex-1 px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+              />
+            </div>
+          )}
+          {showSecondCta && (
+            <p className="text-xs text-pd-muted mt-1">Buttons will sit side-by-side when there&apos;s room, and stack vertically on narrow screens.</p>
+          )}
         </div>
 
         {/* Color Scheme */}
