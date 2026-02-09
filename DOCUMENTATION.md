@@ -4,7 +4,7 @@
 
 The Planet Detroit Newsletter Builder is a Next.js web application that streamlines the creation of Planet Detroit's email newsletter. It pulls content from WordPress, environmental APIs, and AI-powered parsing to assemble a fully formatted HTML email ready for ActiveCampaign.
 
-The app is deployed at `newsletter-builder-azure.vercel.app` and persists drafts in the browser's localStorage. There is no backend database. The final output is a single HTML string suitable for email clients.
+The app is deployed at `newsletter-builder-azure.vercel.app` and persists drafts in the browser's localStorage. Vercel KV (Upstash Redis) is used for shareable preview links, ad performance snapshots, and brief storage. The final output is a single HTML string suitable for email clients.
 
 ---
 
@@ -70,9 +70,11 @@ Each section has a status badge (empty, needs attention, ready) and opens in a s
 The main editorial section with AI generation support.
 
 **Features:**
-- Rich text editor (contentEditable) with bold, italic, and link buttons
+- Rich text editor (contentEditable) with bold, italic, link, and emoji picker buttons
 - "Generate Intro & Subject Lines" button calls Claude Sonnet to draft 2-3 paragraphs and 5 subject line suggestions based on the selected stories, curated news, and events
-- Subject line input at top of dashboard
+- Subject line input at top of dashboard with word counter (3-5 word target, color-coded green/red)
+- Preview text input for email preheader (hidden text that shows in inbox alongside the subject line, 90-char guide)
+- Word counter (200 max, red warning when exceeded) and paragraph counter (aim for 2, amber when exceeded)
 - Staff signoff selector: dropdown of 6 Planet Detroit staff members (Nina Ignaczak, Dustin Blitchok, Ethan Bakuli, Brian Allnutt, Isabelle Tavares, Ian Solomon) with live preview showing round photo, name, and title
 
 ### PD Stories (`PDStoriesSelector.tsx`)
@@ -93,7 +95,7 @@ Manages the "Reporting from Planet Detroit" section of the newsletter.
 Curated external news stories with AI-powered summarization.
 
 **Three import methods:**
-1. **Import from Brief Generator** - Fetches pre-curated brief packets from an external Vercel KV-backed service (requires `BRIEF_GENERATOR_URL`)
+1. **Import from Brief Generator** - Fetches pre-curated brief packets from an external Vercel KV-backed service (requires `BRIEF_GENERATOR_URL`). Each brief has a delete button (✕) that removes it from both the UI and the remote KV store.
 2. **AI URL/text import** - Paste URLs or article text; Claude generates headline (with emoji), 1-2 sentence summary, and source attribution
 3. **Manual add** - Empty card for hand-entry
 
@@ -145,13 +147,13 @@ A post-script call-to-action that appears after the editor's letter.
 
 ### CO2 / Air Quality / Lake Levels (`CO2Widget.tsx`)
 
-Fetches three environmental data points in parallel with a single button:
+Fetches three environmental data points with individual or bulk fetch buttons:
 
 - **Atmospheric CO2**: Weekly data from NOAA Mauna Loa (current PPM, year-over-year change)
 - **Air Quality**: Detroit area AQI from EPA AirNow (ZIP 48201, 25-mile radius)
 - **Lake Levels**: Lake Erie and Michigan-Huron from NOAA GLERL (meters, monthly change)
 
-Data is rendered as a colored strip in the newsletter header.
+Each data source can be fetched individually (CO₂, AQI, Lakes buttons) or all at once (Fetch All). Each fetched data point has a ✕ button to clear it from the newsletter, allowing editors to include only the data they want. Data is rendered as a compact strip in the newsletter header.
 
 ### Featured Promo (`FeaturedPromoEditor.tsx`)
 
@@ -175,14 +177,38 @@ Hardcoded in `generateNewsletterHTML.ts`. Contains: Planet Detroit logo/link, ta
 
 ## Ad Management (`AdManager.tsx`)
 
-Supports up to 4 sponsored ad placements at strategic positions in the newsletter:
+A full ad builder and performance tracker for sponsored placements.
 
-- After Intro
-- After PD Stories
-- After What We're Reading
-- Before Footer
+### Ad Builder
 
-Each ad has a name, HTML content field (sponsors provide raw HTML), and active/inactive toggle. The HTML is injected directly at the specified position during newsletter generation.
+Creates email-compatible ad HTML with a visual builder. Fields include:
+
+- **Ad image** (optional): URL input or direct upload to WordPress media library via REST API. Recommended size 970×350px. Images render full-width above the headline/body content.
+- **Headline**: Text with word counter (16-word guide)
+- **Body copy**: WYSIWYG editor (MiniWysiwyg) with bold, italic, and link support
+- **Primary CTA**: Button text + URL with auto-generated UTM parameters (utm_source=newsletter, utm_medium=email, utm_campaign=planet-detroit-newsletter, utm_content=headline-slug)
+- **Second CTA** (optional): Toggle to add a second button. Two buttons render side-by-side when there's room, stacking vertically on narrow screens. Uses inline-block layout with MSO conditional comments for Outlook compatibility.
+- **Color scheme**: PD Blue (#2982C4) or PD Orange (#ea5a39)
+
+The ad layout order is: image → Sponsored tag → headline → body → CTA button(s). The preview and "Add to Newsletter" sections appear as soon as any field has content.
+
+### Ad Placement
+
+Supports 4 newsletter positions: After Intro, After PD Stories, After What We're Reading, Before Footer. Each placed ad has an active/inactive toggle and can be removed.
+
+### Ad Performance Tracker
+
+Connects to the ActiveCampaign API to track ad link performance:
+
+- Campaign dropdown listing sent campaigns (v3 API)
+- Summary stats: total sent, open rate, total clicks
+- Per-link click table with unique click counts; links matching ad CTAs are highlighted in orange
+- **Save Snapshot** button stores performance data to Vercel KV (Upstash Redis) with a 90-day TTL and optional note
+- Link to `/ad-history` page
+
+### Ad History Page (`/ad-history`)
+
+Protected page (behind login) that displays saved performance snapshots. Features expandable cards with campaign stats and per-link breakdowns, campaign filter dropdown, delete buttons, and a **Download CSV** button per snapshot for sharing reports with advertising clients.
 
 ---
 
@@ -223,8 +249,19 @@ The `generateNewsletterHTML.ts` file is the single source of truth for the final
 The `/preview` page provides:
 
 - **Live preview** in a responsive iframe (desktop 700px or mobile 375px toggle)
+- **Share preview** — Stores the newsletter HTML in Vercel KV (with in-memory fallback) and copies a public URL. The `/newsletter-preview` page is exempt from auth, so links can be shared with clients and stakeholders. Preview links expire after 7 days.
 - **Copy HTML** to clipboard
 - **Download HTML** as a file (named `planet-detroit-newsletter-YYYY-MM-DD.html`)
+
+## Issue Management (`IssueManager.tsx`)
+
+Located in the dashboard date selector row, this component manages saving and loading newsletter issues.
+
+- **Save Current Issue**: Stores the full newsletter state to localStorage keyed by date (`pd-issue-YYYY-MM-DD`)
+- **Load**: Restores a saved issue into the editor
+- **Delete**: Removes a saved issue from localStorage
+- **New Issue**: Resets the editor to a blank state
+- **Export JSON / Import JSON**: Export any saved issue as a portable JSON file, or import one from disk. Useful for backup or transferring between browsers.
 
 ---
 
@@ -246,15 +283,16 @@ The campaign is created as a **draft** (status 0) and is never auto-sent.
 
 | Service | Purpose | Env Var(s) |
 |---------|---------|------------|
-| WordPress (planetdetroit.org) | Posts, job listings | `WORDPRESS_URL`, `WORDPRESS_USERNAME`, `WORDPRESS_APP_PASSWORD` |
+| WordPress (planetdetroit.org) | Posts, job listings, media uploads | `WORDPRESS_URL`, `WORDPRESS_USERNAME`, `WORDPRESS_APP_PASSWORD` |
 | Claude AI (Anthropic) | Intro generation, content parsing, summarization | `ANTHROPIC_API_KEY` |
-| ActiveCampaign | Email campaign creation | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` |
+| ActiveCampaign | Email campaign creation, link tracking | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` |
+| Vercel KV (Upstash Redis) | Share preview links, ad performance snapshots | `KV_REST_API_URL`, `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) |
 | NOAA GML | Weekly CO2 data | (no key needed) |
 | EPA AirNow | Air quality index | `AIRNOW_API_KEY` |
 | NOAA GLERL | Great Lakes water levels | (no key needed) |
 | Brief Generator | Pre-curated news briefs | `BRIEF_GENERATOR_URL` |
 
-**Deployment:** Vercel (auto-deploys from `main` branch on GitHub at `Planet-Detroit/newsletter-builder`). Environment variables are set in the Vercel project dashboard.
+**Deployment:** Vercel (auto-deploys from `main` branch on GitHub at `Planet-Detroit/newsletter-builder`). Environment variables are set in the Vercel project dashboard. The Vercel KV store ("promoted-walleye") is shared with the news-brief-generator project; newsletter builder keys are namespaced with `nl:` to avoid collisions.
 
 ---
 
@@ -270,6 +308,12 @@ WORDPRESS_USERNAME=                  # WordPress username for basic auth
 WORDPRESS_APP_PASSWORD=              # WordPress application password
 AUTH_PASSWORD=                        # Shared newsroom login password
 AUTH_SECRET=                          # Random 64-char hex string for cookie signing
+
+# Vercel KV / Upstash Redis (for share previews + ad snapshots)
+KV_REST_API_URL=                     # Upstash Redis REST URL (auto-injected by Vercel KV)
+KV_REST_API_TOKEN=                   # Upstash Redis REST token (auto-injected by Vercel KV)
+UPSTASH_REDIS_REST_URL=              # Alternative naming (both conventions supported)
+UPSTASH_REDIS_REST_TOKEN=            # Alternative naming (both conventions supported)
 
 # Optional
 AIRNOW_API_KEY=                      # EPA AirNow (air quality data)
@@ -289,10 +333,17 @@ src/
     page.tsx                          # Main dashboard
     login/page.tsx                    # Login page (public, not protected)
     preview/page.tsx                  # Newsletter preview + export
+    newsletter-preview/page.tsx       # Public shareable preview (no auth)
+    ad-preview/page.tsx               # Public ad preview
+    ad-history/page.tsx               # Ad performance history (auth required)
     api/
       auth/login/route.ts            # Login endpoint (public)
       auth/logout/route.ts           # Logout endpoint
       activecampaign/route.ts         # Push to ActiveCampaign
+      activecampaign/campaigns/route.ts  # List AC campaigns (v3 API)
+      activecampaign/link-stats/route.ts # Per-link click data (v1 API)
+      activecampaign/snapshots/route.ts  # CRUD for ad performance snapshots (KV)
+      share-preview/route.ts          # Store/retrieve newsletter previews (KV + in-memory fallback)
       co2/route.ts                    # NOAA CO2 data
       air-quality/route.ts            # EPA AirNow data
       lake-levels/route.ts            # NOAA GLERL data
@@ -302,36 +353,40 @@ src/
       parse-jobs/route.ts             # AI job parsing
       wordpress/posts/route.ts        # WordPress post fetch
       wordpress/jobs/route.ts         # WordPress job fetch
-      import-briefs/route.ts          # Brief generator import
+      wordpress/media/route.ts        # WordPress media upload (images)
+      import-briefs/route.ts          # Brief generator import + delete proxy
   components/
     ToolNav.tsx                       # Cross-navigation bar + sign out
     Dashboard/
       Header.tsx                      # Top nav + generate button
       ProgressBar.tsx                 # Section completion tracker
       SectionCard.tsx                 # Grid card for each section
+      IssueManager.tsx                # Save/load/export newsletter issues
     Sections/
       SectionEditor.tsx               # Slide-over router
-      IntroEditor.tsx                 # Editor's Letter
+      IntroEditor.tsx                 # Editor's Letter (with word/paragraph limits, emoji picker)
       PDStoriesSelector.tsx           # PD Stories
-      CuratedNewsImport.tsx           # Curated news
+      CuratedNewsImport.tsx           # Curated news (with brief deletion)
       EventsSelector.tsx              # Events
       JobsSelector.tsx                # Jobs
       PSCtaEditor.tsx                 # P.S. CTA
-      AdManager.tsx                   # Ad slots
-      CO2Widget.tsx                   # Environmental data
+      AdManager.tsx                   # Ad builder + placement + performance tracker
+      CO2Widget.tsx                   # Environmental data (individual fetch/clear)
       HeaderEditor.tsx                # Header settings
       FeaturedPromoEditor.tsx         # Featured promo
       SponsorsEditor.tsx              # Sponsors
       SupportCtaEditor.tsx            # Support CTA
       StaticSection.tsx               # Read-only sections
-      MiniWysiwyg.tsx                 # Lightweight rich text editor
+      MiniWysiwyg.tsx                 # Lightweight rich text editor (bold, italic, link, emoji)
   context/
     NewsletterContext.tsx              # State management (context + reducer)
   lib/
     auth.ts                           # HMAC-SHA256 token signing/verification
     generateNewsletterHTML.ts         # HTML email generator (single source of truth)
+    redis.ts                          # Upstash Redis singleton (supports KV_* and UPSTASH_* naming)
   types/
     newsletter.ts                     # TypeScript interfaces + constants
+    ads.ts                            # AC campaign, link stat, and snapshot interfaces
 ```
 
 ---
@@ -341,5 +396,8 @@ src/
 - All content cards (posts, stories, events, jobs) default to **unchecked**. The editor manually selects which items to include.
 - The editor's signoff defaults to Nina Ignaczak.
 - The P.S. CTA and Support CTA default to the donorbox donation link.
-- Environmental data must be explicitly fetched each issue (no auto-fetch on load).
+- Environmental data must be explicitly fetched each issue (no auto-fetch on load). Each data source can be fetched and cleared individually.
 - The newsletter is never auto-sent; ActiveCampaign campaigns are created as drafts.
+- Ad preview and "Add to Newsletter" sections appear when any ad field has content (image, headline, body, or CTA).
+- Share preview links use Redis when Vercel KV is connected, with an in-memory fallback otherwise.
+- The `nl:` key prefix namespaces all newsletter builder data in the shared Redis instance.
