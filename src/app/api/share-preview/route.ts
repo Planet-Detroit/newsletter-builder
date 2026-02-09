@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getRedis } from "@/lib/redis";
 
-// In-memory store for preview snapshots.
-// Previews persist as long as the serverless function stays warm (typically
-// minutes to hours on Vercel). For permanent links, swap this for Vercel KV.
-const previews = new Map<string, { html: string; created: number }>();
-
-// Clean up previews older than 24 hours on each request
-function cleanup() {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [id, data] of previews) {
-    if (data.created < cutoff) previews.delete(id);
-  }
-}
+const PREFIX = "nl:preview:";
+const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 function generateId(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let id = "";
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 10; i++) {
     id += chars[Math.floor(Math.random() * chars.length)];
   }
   return id;
@@ -25,14 +16,14 @@ function generateId(): string {
 // POST: Store a preview, return an ID
 export async function POST(request: NextRequest) {
   try {
-    cleanup();
     const { html } = await request.json();
     if (!html || typeof html !== "string") {
       return NextResponse.json({ error: "Missing html" }, { status: 400 });
     }
 
+    const redis = getRedis();
     const id = generateId();
-    previews.set(id, { html, created: Date.now() });
+    await redis.set(`${PREFIX}${id}`, html, { ex: TTL_SECONDS });
 
     return NextResponse.json({ id });
   } catch {
@@ -47,10 +38,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const data = previews.get(id);
-  if (!data) {
-    return NextResponse.json({ error: "Preview not found or expired" }, { status: 404 });
-  }
+  try {
+    const redis = getRedis();
+    const html = await redis.get<string>(`${PREFIX}${id}`);
+    if (!html) {
+      return NextResponse.json({ error: "Preview not found or expired" }, { status: 404 });
+    }
 
-  return NextResponse.json({ html: data.html });
+    return NextResponse.json({ html });
+  } catch {
+    return NextResponse.json({ error: "Storage error" }, { status: 500 });
+  }
 }
