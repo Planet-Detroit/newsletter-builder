@@ -101,13 +101,15 @@ async function tryV3CampaignLinks(apiUrl: string, apiKey: string, campaignId: st
     const result: LinkResult[] = links
       .filter((l) => {
         const href = (l.link || l.url || l.href || "") as string;
-        return href && href.trim().length > 0;
+        // Filter out empty links and AC "Read Tracker" entries (link === "open")
+        return href && href.trim().length > 0 && href.trim().toLowerCase() !== "open";
       })
       .map((l) => ({
         url: (l.link || l.url || l.href || "") as string,
         name: (l.name || "") as string,
-        clicks: parseInt(String(l.clicks || l.totalClicks || l.total_clicks || "0"), 10),
-        uniqueClicks: parseInt(String(l.uniqueClicks || l.uniqueclicks || l.unique_clicks || "0"), 10),
+        // AC v3 campaigns/{id}/links uses "linkclicks" and "uniquelinkclicks"
+        clicks: parseInt(String(l.linkclicks || l.clicks || l.totalClicks || l.total_clicks || "0"), 10),
+        uniqueClicks: parseInt(String(l.uniquelinkclicks || l.uniqueClicks || l.uniqueclicks || l.unique_clicks || "0"), 10),
       }))
       .filter((l) => l.clicks > 0 || l.uniqueClicks > 0)
       .sort((a, b) => b.clicks - a.clicks);
@@ -138,23 +140,21 @@ async function tryV3Links(apiUrl: string, apiKey: string, campaignId: string): P
     }
 
     const data = await res.json();
-    const links = (data.links || []) as Array<{
-      link: string;
-      name?: string;
-      clicks?: string | number;
-      uniqueClicks?: string | number;
-      uniqueclicks?: string | number;
-    }>;
+    const links = (data.links || []) as Array<Record<string, unknown>>;
 
     if (links.length === 0) return [];
 
     const result: LinkResult[] = links
-      .filter((l) => l.link && l.link.trim())
+      .filter((l) => {
+        const href = (l.link || l.url || "") as string;
+        return href && href.trim().length > 0 && href.trim().toLowerCase() !== "open";
+      })
       .map((l) => ({
-        url: l.link,
-        name: l.name || "",
-        clicks: parseInt(String(l.clicks || "0"), 10),
-        uniqueClicks: parseInt(String(l.uniqueClicks || l.uniqueclicks || "0"), 10),
+        url: (l.link || l.url || "") as string,
+        name: (l.name || "") as string,
+        // v3 /links endpoint may use linkclicks or clicks
+        clicks: parseInt(String(l.linkclicks || l.clicks || "0"), 10),
+        uniqueClicks: parseInt(String(l.uniquelinkclicks || l.uniqueClicks || l.uniqueclicks || "0"), 10),
       }))
       .filter((l) => l.clicks > 0 || l.uniqueClicks > 0)
       .sort((a, b) => b.clicks - a.clicks);
@@ -214,12 +214,16 @@ function extractLinksFromV1(data: Record<string, unknown>): LinkResult[] {
 
   for (const key of Object.keys(data)) {
     const val = data[key] as Record<string, string> | null;
-    if (val && typeof val === "object" && val.url) {
+    // v1 API uses "link" for the URL, "a_total" for total clicks, "a_unique" for unique clicks
+    if (val && typeof val === "object" && (val.link || val.url)) {
+      const href = val.link || val.url;
+      // Skip AC "Read Tracker" entries
+      if (href.trim().toLowerCase() === "open") continue;
       links.push({
-        url: val.url,
+        url: href,
         name: val.name || "",
-        clicks: parseInt(val.clicks || "0", 10),
-        uniqueClicks: parseInt(val.uniqueclicks || "0", 10),
+        clicks: parseInt(val.a_total || val.clicks || "0", 10),
+        uniqueClicks: parseInt(val.a_unique || val.uniqueclicks || "0", 10),
       });
     }
   }

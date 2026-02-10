@@ -430,33 +430,15 @@ export default function AdTracker() {
             </div>
           )}
 
-          {!anyLinksLoading && otherLinks.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">
-                All Link Clicks {selectedCampaigns.length > 1 && "(combined)"}
-              </h4>
-              <div className="space-y-1">
-                {otherLinks.map((link, i) => (
-                  <LinkRow key={`link-${i}`} link={link} isAd={false} totalSent={aggregate.sendCount} />
-                ))}
-              </div>
+          {!anyLinksLoading && selectedIds.size > 0 && adLinks.length === 0 && aggregatedLinks.length > 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+              <p className="text-amber-800">Link data loaded but no matching ad links found. Make sure your ads are set up in the Ad Builder with the correct destination URLs.</p>
             </div>
           )}
 
           {!anyLinksLoading && selectedIds.size > 0 && aggregatedLinks.length === 0 && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
-              <p className="text-amber-800 mb-1.5">No link click data found for the selected campaign{selectedIds.size > 1 ? "s" : ""} yet.</p>
-              <p className="text-amber-600">
-                To debug, open this link in a new tab:{" "}
-                <a
-                  href={`/api/activecampaign/debug-links?campaignId=${[...selectedIds][0]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline font-medium"
-                >
-                  Debug AC Link Stats (ID: {[...selectedIds][0]})
-                </a>
-              </p>
+              <p className="text-amber-800">No link click data found for the selected campaign{selectedIds.size > 1 ? "s" : ""} yet. Link data may take a few hours to populate in ActiveCampaign after sending.</p>
             </div>
           )}
 
