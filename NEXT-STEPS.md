@@ -1,118 +1,135 @@
 # Next Steps & Roadmap
 
-## Recently Completed
+## Recently Completed (Feb 9, 2026)
 
-- **Vercel deployment** — Live at `newsletter-builder-azure.vercel.app` with all env vars configured
-- **Authentication** — Shared password login with HMAC-SHA256 signed cookies. Middleware protects all pages and API routes. Login page at `/login`, sign-out button in ToolNav.
-- **Cross-navigation (ToolNav)** — Dark nav bar linking between Newsletter Builder and Brief Generator (`news-brief-generator.vercel.app`). Present on both apps.
+- **Collaborative editing** — Shared draft via Redis with section-level merge. Nina and Dustin can work simultaneously without overwriting each other.
+- **Ad panel overhaul** — Image support, dual CTAs, WYSIWYG body copy, WordPress image upload
+- **Share preview fix** — Redis-backed storage so preview links survive Vercel cold starts
+- **Session persistence** — Ads, jobs, and events carry over across New Issue resets
+- **Ad tracker filtering** — Only shows sent campaigns from the last 30 days
+- **Preview text reminder** — Amber warning when preheader is empty
+- **Vercel KV connected** — Redis store linked to newsletter-builder project on Vercel
 
 ---
 
-## Priority 1: Events via CitySpark
+## Priority 0: First Send (Feb 10, 2026)
+
+Tomorrow's the first real newsletter built with this tool. Things to watch for:
+
+- **Preview text** — make sure it shows up in email client inboxes (Gmail, Apple Mail, Outlook)
+- **Ad rendering** — if using image ads, test in Outlook (it's the pickiest client)
+- **ActiveCampaign draft** — after clicking "Generate Newsletter," review the draft in AC before sending. Check that images load, links work, and the preheader is correct.
+- **Share preview** — test the share link to make sure it works for external recipients (should load without login)
+
+---
+
+## Priority 1: CitySpark Events Integration
 
 ### Background
 
-The Events section currently supports manual entry and AI-powered paste parsing, but lacks an automated feed. CitySpark (cityspark.com) is an event aggregation platform that covers Detroit-area environmental and community events. Integrating CitySpark would save significant time each newsletter issue.
+The Events section currently supports manual entry and AI-powered paste parsing. CitySpark (cityspark.com) is an event aggregation platform covering Detroit-area environmental and community events. Automating this would save significant time each issue.
 
 ### Exploration Needed
 
-Before building an integration, we need to understand what CitySpark offers:
+- **Does CitySpark have a public API?** Check for REST or RSS endpoints. Look for developer docs or API keys.
+- **RSS/iCal feeds?** Many event platforms offer category-specific feeds (environment, sustainability, Detroit metro).
+- **Structured data?** If no API, check if their pages have schema.org Event markup or JSON-LD that could be extracted.
+- **Partnership?** Consider reaching out to CitySpark directly — they may offer data access for media partners.
 
-- **Does CitySpark have a public API?** Check for REST or RSS endpoints at cityspark.com. Look for developer docs or API keys.
-- **RSS/iCal feeds?** Many event platforms offer RSS or iCal (.ics) feeds that can be parsed programmatically. Check if CitySpark has category-specific feeds (e.g., environment, sustainability, Detroit metro).
-- **Embed widgets?** CitySpark may offer embeddable calendars. These wouldn't help for email HTML but could hint at available data endpoints.
-- **Scraping feasibility?** If no API exists, evaluate whether the event listing pages have structured data (schema.org Event markup, JSON-LD) that could be extracted.
+### Implementation Plan
 
-### Recommended Approach (Short-Term)
-
-For now, the most practical path is a **manual copy/paste workflow** with AI parsing:
-
-1. **Go to CitySpark** and navigate to the relevant event category for Detroit
-2. **Select and copy** the event listings (title, date, time, location, link)
-3. **Paste into the Events section** in the newsletter builder using the existing "Paste" input
-4. **Click "Parse Events"** to let Claude extract and normalize the data
-5. **Review and edit** the parsed results, select which events to include
-
-This already works today with the existing `parse-events` API route, which handles freeform text, CSV, and semi-structured event listings.
-
-### Recommended Approach (Medium-Term)
-
-If CitySpark has an API or RSS feed:
-
-1. Add a `GET /api/cityspark/events` route that fetches upcoming Detroit environmental events
-2. Add a "Fetch from CitySpark" button in `EventsSelector.tsx` (similar to the WordPress fetch button in Jobs)
-3. Map CitySpark event fields to our `EventItem` interface (title, date, time, location, url, source)
+If CitySpark has an API or feed:
+1. Add `GET /api/cityspark/events` route to fetch upcoming Detroit environmental events
+2. Add "Fetch from CitySpark" button in `EventsSelector.tsx` (same pattern as WordPress fetch in Jobs)
+3. Map CitySpark fields to the existing `EventItem` interface
 4. Set `source: "CitySpark"` for attribution
 
-If no API exists, consider:
-
-1. A lightweight scraper that runs on-demand (not scheduled) to pull event data from CitySpark's event listing pages
-2. Look for structured data (JSON-LD, microdata) in the page source before attempting full DOM parsing
-3. The scraper would return data in the same shape as the manual parse, so the UI wouldn't need changes
+If no API exists:
+1. Build an on-demand scraper that pulls event data from CitySpark listing pages
+2. Use Claude to extract and normalize event data from the page content
+3. Same UI — the data source is different but the output format is identical
 
 ### Events Feature Parity with Jobs
 
-When events are fully set up, they should gain the same features recently added to jobs:
+When events are fully set up, add:
+- Featured flag for emphasis (amber highlight, star badge)
+- Partner tier badges (Planet Champion / Impact Partner)
+- Move to top button for quick reordering
+- Description visibility toggle
 
-- **Featured flag** for emphasis (amber highlight, star badge)
-- **Partner tier badges** (Planet Champion / Impact Partner) with link to planetdetroit.org/impactpartners/
-- **Move to top** button for quick reordering
-- **Description visibility toggle** for unfeatured items
-
-The `EventItem` interface will need `featured: boolean` and `partnerTier: PartnerTier` fields, matching `JobListing`.
+The `EventItem` interface will need `featured: boolean` and `partnerTier: PartnerTier` fields.
 
 ---
 
-## Priority 2: Refinements
+## Priority 2: Engineering Health (Recommended Improvements)
 
-### Environmental Data Widget
+These aren't features — they're investments that make the existing system more reliable and easier to change. Think of them as maintenance on the tool itself.
 
-- Add caching to the client side so data persists across page reloads within the same session (currently re-fetched each time the widget is opened)
-- Consider auto-fetching on page load or when starting a new issue
-- Add historical trend indicators (e.g., "CO2 up 2.5 PPM from last year")
+### Extract sync logic from NewsletterContext
 
-### Brief Generator Integration
+**What:** `NewsletterContext.tsx` is 485 lines handling state, auto-save, Redis sync, polling, and merging. Split into focused pieces.
+**Why:** When something breaks in sync, you shouldn't have to read 485 lines to find it. Smaller files are easier to understand, test, and debug.
+**How:** Create `useAutoSave.ts` (localStorage + Redis save logic), `useDraftSync.ts` (polling + merge logic), keep `NewsletterContext.tsx` as the coordinator that wires them together.
 
-- Document the brief packet format for the team
-- Consider building the brief generation directly into the newsletter builder to reduce external dependencies
+### Add basic tests for critical paths
+
+**What:** Automated tests for the 3-4 things that would be worst to break.
+**Why:** Right now, the only way to know if a change broke something is to click through the app manually. Tests catch regressions automatically.
+**Priority tests:**
+1. `generateNewsletterHTML` — does it produce valid HTML with the right sections?
+2. `mergeDraftState` — does the 3-way merge actually preserve both editors' changes?
+3. Ad HTML generation — do images, dual CTAs, and WYSIWYG body render correctly?
+4. `isValid` logic — does the ad preview show when it should?
+
+### Add API input validation
+
+**What:** Validate incoming data on API routes using a library like Zod.
+**Why:** Right now, if bad data hits `/api/draft`, it goes straight into Redis. Validation catches malformed requests before they corrupt your shared state.
+**Where:** Start with `/api/draft` (shared state — most critical) and `/api/activecampaign` (talks to external service).
+
+### Separate newsletter content from UI state
+
+**What:** The `sections` array (which panels are open/ready/empty) lives in the same state object as actual newsletter content (subject line, stories, ads). These are different concerns.
+**Why:** The sync system has to carefully exclude `sections` from merge logic. If they were separate state objects from the start, sync would be simpler and less error-prone.
+**When:** Next time you do a significant refactor. Not urgent, but would simplify future sync improvements.
+
+---
+
+## Priority 3: Feature Ideas
+
+### Environmental Data
+- Auto-fetch CO2/AQI/Lakes on page load or new issue start
+- Historical trend indicators ("CO2 up 2.5 PPM from last year")
 
 ### Newsletter Templates
-
-- Save newsletter configurations as reusable templates (e.g., "Standard Weekly", "Special Report", "Breaking News")
+- Save configurations as reusable templates ("Standard Weekly", "Special Report", "Breaking News")
 - Quick-start from template instead of blank state
 
-### Image Handling
-
-- Upload images directly to the newsletter builder rather than relying on WordPress media library URLs
-- Image optimization and resizing for email (max width, file size limits)
-- Fallback alt text for accessibility
-
-### Multi-User Support
-
-- If multiple editors need to work on the same issue, add real-time state sync via WebSocket or polling
-- Per-user accounts (currently shared password; could upgrade to individual logins if needed)
-- Edit history / undo functionality
-
----
-
-## Priority 3: Future Features
-
-### Social Video Scripts
-
-A skill is already available (`social-video-news-script`) that can generate 60-second social media video scripts from newsletter content. This could be integrated as a one-click export:
-
-- Select stories from the current newsletter
-- Generate TikTok/Reels/Shorts script with teleprompter text and AV editing notes
-- Export as a formatted document
+### Brief Generator Integration
+- Build brief generation directly into the newsletter builder
+- Reduce the need to switch between two separate apps
 
 ### Analytics Dashboard
-
-- Track open rates, click rates from ActiveCampaign
+- Track open rates and click rates from ActiveCampaign over time
 - Show which stories get the most engagement
 - Suggest content types that perform well
 
-### Subscriber Segmentation
+### Social Video Scripts
+- The `social-video-news-script` skill can generate 60-second video scripts from newsletter content
+- One-click export: select stories, generate TikTok/Reels/Shorts script
 
-- Create newsletter variants for different audience segments
-- A/B test subject lines directly from the builder
-- Preview how the newsletter looks in different email clients (Gmail, Outlook, Apple Mail)
+### Email Client Preview
+- Preview how the newsletter looks in Gmail, Outlook, and Apple Mail
+- Catch rendering issues before sending
+
+---
+
+## Process Improvements
+
+Based on how this tool was built (iteratively, feature by feature, in conversation):
+
+- **Start each feature with a plain-language spec** — even a 3-bullet list of "what should this do?" gives you something to verify against when done
+- **One feature per commit** — makes it easy to roll back a single change without untangling others
+- **Keep this changelog updated** — future-you will thank present-you when you wonder "when did we add the WYSIWYG?"
+- **Don't run git commands from the sandbox** — avoids the .git/HEAD.lock issue. Copy-paste push commands to your local terminal instead.
+- **Test the email HTML in Litmus or Email on Acid** — free tiers exist and they show you exactly how the newsletter renders across 90+ email clients
