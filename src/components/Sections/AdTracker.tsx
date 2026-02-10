@@ -444,7 +444,20 @@ export default function AdTracker() {
           )}
 
           {!anyLinksLoading && selectedIds.size > 0 && aggregatedLinks.length === 0 && (
-            <p className="text-xs text-pd-muted">No link click data found for the selected campaign{selectedIds.size > 1 ? "s" : ""} yet.</p>
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
+              <p className="text-amber-800 mb-1.5">No link click data found for the selected campaign{selectedIds.size > 1 ? "s" : ""} yet.</p>
+              <p className="text-amber-600">
+                To debug, open this link in a new tab:{" "}
+                <a
+                  href={`/api/activecampaign/debug-links?campaignId=${[...selectedIds][0]}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-medium"
+                >
+                  Debug AC Link Stats (ID: {[...selectedIds][0]})
+                </a>
+              </p>
+            </div>
           )}
 
           {/* Action bar: Snapshot + PDF Export */}

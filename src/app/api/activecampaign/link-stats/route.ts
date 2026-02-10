@@ -34,10 +34,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Strategy 0: v3 API — GET /api/3/campaigns/{id}/links (sub-resource)
+    const subLinks = await tryV3CampaignLinks(apiUrl, apiKey, campaignId);
+    if (subLinks.length > 0) {
+      console.log(`[link-stats] v3 campaigns/${campaignId}/links returned ${subLinks.length} links`);
+      return NextResponse.json({ links: subLinks });
+    }
+
     // Strategy 1: v3 API — GET /api/3/links filtered by campaignid
     const v3Links = await tryV3Links(apiUrl, apiKey, campaignId);
     if (v3Links.length > 0) {
-      console.log(`[link-stats] v3 API returned ${v3Links.length} links for campaign=${campaignId}`);
+      console.log(`[link-stats] v3 links filter returned ${v3Links.length} links for campaign=${campaignId}`);
       return NextResponse.json({ links: v3Links });
     }
 
@@ -65,6 +72,50 @@ export async function GET(request: NextRequest) {
     console.error("ActiveCampaign link stats error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+/**
+ * Strategy 0: v3 API campaign sub-resource for links.
+ * GET /api/3/campaigns/{id}/links
+ */
+async function tryV3CampaignLinks(apiUrl: string, apiKey: string, campaignId: string): Promise<LinkResult[]> {
+  try {
+    const url = `${apiUrl}/api/3/campaigns/${campaignId}/links`;
+    const res = await fetch(url, {
+      headers: { "Api-Token": apiKey },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) {
+      console.warn(`[link-stats] v3 campaigns/${campaignId}/links returned ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    // AC may return links under "links" or "campaignLinks" key
+    const links = (data.links || data.campaignLinks || []) as Array<Record<string, unknown>>;
+
+    if (links.length === 0) return [];
+
+    const result: LinkResult[] = links
+      .filter((l) => {
+        const href = (l.link || l.url || l.href || "") as string;
+        return href && href.trim().length > 0;
+      })
+      .map((l) => ({
+        url: (l.link || l.url || l.href || "") as string,
+        name: (l.name || "") as string,
+        clicks: parseInt(String(l.clicks || l.totalClicks || l.total_clicks || "0"), 10),
+        uniqueClicks: parseInt(String(l.uniqueClicks || l.uniqueclicks || l.unique_clicks || "0"), 10),
+      }))
+      .filter((l) => l.clicks > 0 || l.uniqueClicks > 0)
+      .sort((a, b) => b.clicks - a.clicks);
+
+    return result;
+  } catch (err) {
+    console.warn("[link-stats] v3 campaigns/links strategy failed:", err);
+    return [];
   }
 }
 
