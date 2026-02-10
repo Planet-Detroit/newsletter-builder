@@ -188,7 +188,16 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
     case "LOAD_STATE":
       return { ...action.payload };
     case "RESET":
-      return { ...initialState, issueDate: new Date().toISOString().slice(0, 10) };
+      return {
+        ...initialState,
+        issueDate: new Date().toISOString().slice(0, 10),
+        // Preserve ads, jobs, and events across issue resets
+        ads: state.ads,
+        jobs: state.jobs,
+        jobsShowDescriptions: state.jobsShowDescriptions,
+        events: state.events,
+        eventsHtml: state.eventsHtml,
+      };
     default:
       return state;
   }
