@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/activecampaign/campaigns
- * Lists recent campaigns from ActiveCampaign (v3 API).
+ * Lists recent sent campaigns from ActiveCampaign (v3 API).
+ * Only returns campaigns sent within the last 30 days.
  */
 
 export async function GET() {
@@ -29,16 +30,28 @@ export async function GET() {
 
     const data = await res.json();
 
-    // Return simplified campaign list
-    const campaigns = (data.campaigns || []).map((c: Record<string, string>) => ({
-      id: c.id,
-      name: c.name,
-      sendDate: c.sdate || null,
-      status: c.status === "5" ? "sent" : c.status === "2" ? "draft" : c.status === "6" ? "sending" : c.status,
-      sendCount: parseInt(c.send_amt || "0", 10),
-      opens: parseInt(c.uniqueopens || "0", 10),
-      clicks: parseInt(c.linkclicks || "0", 10),
-    }));
+    // 30 days ago cutoff
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+
+    // Return only sent campaigns from the last 30 days
+    const campaigns = (data.campaigns || [])
+      .map((c: Record<string, string>) => ({
+        id: c.id,
+        name: c.name,
+        sendDate: c.sdate || null,
+        status: c.status === "5" ? "sent" : c.status === "2" ? "draft" : c.status === "6" ? "sending" : c.status,
+        sendCount: parseInt(c.send_amt || "0", 10),
+        opens: parseInt(c.uniqueopens || "0", 10),
+        clicks: parseInt(c.linkclicks || "0", 10),
+      }))
+      .filter((c: { status: string; sendDate: string | null }) => {
+        // Only sent campaigns
+        if (c.status !== "sent") return false;
+        // Only from the last 30 days
+        if (!c.sendDate) return false;
+        return new Date(c.sendDate) >= cutoff;
+      });
 
     return NextResponse.json({ campaigns });
   } catch (error) {

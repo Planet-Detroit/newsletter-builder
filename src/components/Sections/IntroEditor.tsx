@@ -186,8 +186,14 @@ export default function IntroEditor() {
           className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
         />
         <p className="text-xs text-pd-muted mt-1">
-          {state.previewText.length} / 90 chars ideal
-          {state.previewText.length > 90 && <span style={{ color: "#ef4444" }}> — may be truncated in some email clients</span>}
+          {state.previewText.length > 0 ? (
+            <>
+              {state.previewText.length} / 90 chars ideal
+              {state.previewText.length > 90 && <span style={{ color: "#ef4444" }}> — may be truncated in some email clients</span>}
+            </>
+          ) : (
+            <span style={{ color: "#f59e0b" }}>Don&apos;t forget to add preview text — this is the snippet readers see in their inbox before opening</span>
+          )}
         </p>
       </div>
 
