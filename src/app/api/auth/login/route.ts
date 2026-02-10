@@ -3,7 +3,7 @@ import { signToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const { password } = await request.json();
+    const { password, userId } = await request.json();
 
     const authPassword = process.env.AUTH_PASSWORD;
     const authSecret = process.env.AUTH_SECRET;
@@ -32,6 +32,17 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: "/",
     });
+
+    // Store userId in a non-httpOnly cookie so the client can read it
+    if (userId) {
+      response.cookies.set("pd_user", userId, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+        path: "/",
+      });
+    }
 
     return response;
   } catch {

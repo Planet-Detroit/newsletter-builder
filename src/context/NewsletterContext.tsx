@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useState } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from "react";
 import {
   NewsletterState,
   SectionStatus,
@@ -18,6 +18,7 @@ import {
   DEFAULT_SECTIONS,
   DEFAULT_SPONSORS,
 } from "@/types/newsletter";
+import { mergeDraftState, getUserFromCookie } from "@/lib/sync";
 
 const DEFAULT_SUPPORT_CTA: SupportCTA = {
   headline: "Support local environmental journalism",
@@ -193,6 +194,8 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
   }
 }
 
+export type SyncStatus = "synced" | "syncing" | "saving" | "offline" | "local-only";
+
 interface NewsletterContextType {
   state: NewsletterState;
   dispatch: React.Dispatch<Action>;
@@ -202,68 +205,229 @@ interface NewsletterContextType {
   settingsTotalCount: number;
   adsCompletedCount: number;
   adsTotalCount: number;
+  syncStatus: SyncStatus;
+  currentUser: string;
+  lastEditor: string;
 }
 
 const NewsletterContext = createContext<NewsletterContextType | null>(null);
 
+const POLL_INTERVAL = 5000; // 5 seconds
+
+/**
+ * Migrate a loaded state object — patch missing fields, merge sections.
+ */
+function migrateState(parsed: Record<string, unknown>): NewsletterState {
+  // Patch pdPosts that are missing newer fields
+  if (Array.isArray(parsed.pdPosts)) {
+    parsed.pdPosts = (parsed.pdPosts as Record<string, unknown>[]).map((p) => ({
+      subtitle: "",
+      photoLayout: "small-left",
+      selected: false,
+      ...p,
+    }));
+  }
+  // Always use latest section definitions (preserving statuses)
+  const mergedSections = DEFAULT_SECTIONS.map((def) => {
+    const saved = (
+      (parsed.sections as { id: string; status: string }[]) || []
+    ).find((s) => s.id === def.id);
+    return saved ? { ...def, status: saved.status as SectionStatus } : def;
+  });
+  return {
+    ...initialState,
+    ...(parsed as Partial<NewsletterState>),
+    sections: mergedSections,
+    sponsors: (parsed.sponsors as SponsorsData) || DEFAULT_SPONSORS,
+    supportCTA: (parsed.supportCTA as SupportCTA) || DEFAULT_SUPPORT_CTA,
+    issueDate:
+      (parsed.issueDate as string) || new Date().toISOString().slice(0, 10),
+    logoUrl:
+      (parsed.logoUrl as string) ||
+      "https://planetdetroit.org/wp-content/uploads/2025/08/Asset-2@4x0424-300x133.png",
+  };
+}
+
 export function NewsletterProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [mounted, setMounted] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>("offline");
+  const [currentUser, setCurrentUser] = useState("");
+  const [lastEditor, setLastEditor] = useState("");
 
-  // Load from localStorage on mount — migrate stale shapes gracefully
+  // Refs for sync tracking
+  const lastSyncedState = useRef<NewsletterState | null>(null);
+  const remoteVersion = useRef<number>(0);
+  const isSaving = useRef(false);
+  const isMerging = useRef(false); // prevent save loop during merge
+
+  // ─── Initial load: try Redis first, fall back to localStorage ───
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("pd-newsletter-draft");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Patch pdPosts that are missing newer fields
-        if (Array.isArray(parsed.pdPosts)) {
-          parsed.pdPosts = parsed.pdPosts.map((p: Record<string, unknown>) => ({
-            subtitle: "",
-            photoLayout: "small-left",
-            selected: false,
-            ...p,
-          }));
+    const user = getUserFromCookie();
+    setCurrentUser(user);
+
+    async function loadInitialState() {
+      // Try Redis first
+      try {
+        const res = await fetch("/api/draft");
+        if (res.ok) {
+          const data = await res.json();
+          const remoteState =
+            typeof data.state === "string"
+              ? JSON.parse(data.state)
+              : data.state;
+          const migrated = migrateState(remoteState);
+          dispatch({ type: "LOAD_STATE", payload: migrated });
+          lastSyncedState.current = migrated;
+          remoteVersion.current = data.version || 0;
+          if (data.userId) setLastEditor(data.userId);
+          setSyncStatus("synced");
+          setMounted(true);
+          return;
         }
-        // Always use latest section definitions (preserving statuses)
-        const mergedSections = DEFAULT_SECTIONS.map((def) => {
-          const saved = (parsed.sections || []).find((s: { id: string }) => s.id === def.id);
-          return saved ? { ...def, status: saved.status } : def;
-        });
-        dispatch({
-          type: "LOAD_STATE",
-          payload: {
-            ...initialState,
-            ...parsed,
-            sections: mergedSections,
-            sponsors: parsed.sponsors || DEFAULT_SPONSORS,
-            supportCTA: parsed.supportCTA || DEFAULT_SUPPORT_CTA,
-            issueDate: parsed.issueDate || new Date().toISOString().slice(0, 10),
-            logoUrl: parsed.logoUrl || "https://planetdetroit.org/wp-content/uploads/2025/08/Asset-2@4x0424-300x133.png",
-          },
-        });
+      } catch {
+        // Redis unavailable — fall through to localStorage
       }
-    } catch {
-      // corrupt state — wipe it and start fresh
-      localStorage.removeItem("pd-newsletter-draft");
+
+      // Fall back to localStorage
+      try {
+        const saved = localStorage.getItem("pd-newsletter-draft");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const migrated = migrateState(parsed);
+          dispatch({ type: "LOAD_STATE", payload: migrated });
+          lastSyncedState.current = migrated;
+        }
+      } catch {
+        localStorage.removeItem("pd-newsletter-draft");
+      }
+
+      setSyncStatus("local-only");
+      setMounted(true);
     }
-    setMounted(true);
+
+    loadInitialState();
   }, []);
 
-  // Auto-save to localStorage
-  const save = useCallback(() => {
+  // ─── Auto-save to localStorage + Redis ───
+  const save = useCallback(async () => {
+    if (isMerging.current) return; // don't save during a merge dispatch
+
+    const toSave = { ...state, lastSaved: new Date().toISOString() };
+
+    // Always save to localStorage as fallback
     try {
-      const toSave = { ...state, lastSaved: new Date().toISOString() };
       localStorage.setItem("pd-newsletter-draft", JSON.stringify(toSave));
     } catch {
-      // ignore storage errors
+      // ignore localStorage errors
     }
-  }, [state]);
+
+    // Also save to Redis
+    if (isSaving.current) return; // skip if a save is already in-flight
+    isSaving.current = true;
+    setSyncStatus("saving");
+
+    try {
+      const user = getUserFromCookie() || currentUser || "unknown";
+      const res = await fetch("/api/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: toSave, userId: user }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        lastSyncedState.current = toSave;
+        remoteVersion.current = data.version || 0;
+        setSyncStatus("synced");
+      } else if (res.status === 503) {
+        // Redis not configured
+        setSyncStatus("local-only");
+      } else {
+        setSyncStatus("offline");
+      }
+    } catch {
+      setSyncStatus("local-only");
+    } finally {
+      isSaving.current = false;
+    }
+  }, [state, currentUser]);
 
   useEffect(() => {
+    if (!mounted) return;
     const timer = setTimeout(save, 1000);
     return () => clearTimeout(timer);
-  }, [save]);
+  }, [save, mounted]);
+
+  // ─── Polling for remote changes ───
+  useEffect(() => {
+    if (!mounted) return;
+
+    const poll = async () => {
+      if (isSaving.current || isMerging.current) return;
+
+      try {
+        // Lightweight meta check first
+        const metaRes = await fetch("/api/draft?meta=true");
+        if (!metaRes.ok) {
+          if (metaRes.status === 503) setSyncStatus("local-only");
+          return;
+        }
+
+        const meta = await metaRes.json();
+        const remoteVer = meta.version || 0;
+        const remoteEditor = meta.userId || "";
+
+        // Update last editor display
+        if (remoteEditor && remoteEditor !== lastEditor) {
+          setLastEditor(remoteEditor);
+        }
+
+        // No new changes, or we were the last editor
+        const user = getUserFromCookie() || currentUser;
+        if (remoteVer <= remoteVersion.current || remoteEditor === user) {
+          if (syncStatus !== "synced" && syncStatus !== "local-only") {
+            setSyncStatus("synced");
+          }
+          return;
+        }
+
+        // Someone else made changes — fetch full state and merge
+        setSyncStatus("syncing");
+        const fullRes = await fetch("/api/draft");
+        if (!fullRes.ok) return;
+
+        const fullData = await fullRes.json();
+        const remoteState =
+          typeof fullData.state === "string"
+            ? JSON.parse(fullData.state)
+            : fullData.state;
+        const migratedRemote = migrateState(remoteState);
+
+        // 3-way merge
+        const base = lastSyncedState.current || initialState;
+        const merged = mergeDraftState(state, migratedRemote, base);
+
+        // Dispatch merged state without triggering a save-to-redis loop
+        isMerging.current = true;
+        dispatch({ type: "LOAD_STATE", payload: merged });
+        lastSyncedState.current = merged;
+        remoteVersion.current = fullData.version || 0;
+
+        // Allow the next render cycle to complete before re-enabling saves
+        requestAnimationFrame(() => {
+          isMerging.current = false;
+        });
+
+        setSyncStatus("synced");
+      } catch {
+        // Network error — silently continue
+      }
+    };
+
+    const interval = setInterval(poll, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [mounted, state, currentUser, lastEditor, syncStatus]);
 
   const contentSections = state.sections.filter((s) => s.tab === "content");
   const settingsSections = state.sections.filter((s) => s.tab === "settings");
@@ -275,7 +439,7 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
   const adsCompletedCount = adsSections.filter((s) => s.status === "ready").length;
   const adsTotalCount = adsSections.length;
 
-  // Prevent hydration mismatch: don't render children until localStorage is loaded
+  // Prevent hydration mismatch: don't render children until initial state is loaded
   if (!mounted) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
@@ -295,6 +459,9 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
         settingsTotalCount,
         adsCompletedCount,
         adsTotalCount,
+        syncStatus,
+        currentUser,
+        lastEditor,
       }}
     >
       {children}

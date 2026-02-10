@@ -4,6 +4,39 @@ import { useNewsletter } from "@/context/NewsletterContext";
 import { generateNewsletterHTML } from "@/lib/generateNewsletterHTML";
 import { useState } from "react";
 
+function SyncIndicator() {
+  const { syncStatus, lastEditor, currentUser } = useNewsletter();
+
+  const config: Record<string, { dot: string; label: string }> = {
+    synced: { dot: "#10b981", label: "Synced" },
+    saving: { dot: "#f59e0b", label: "Saving..." },
+    syncing: { dot: "#3b82f6", label: "Syncing..." },
+    offline: { dot: "#94a3b8", label: "Offline" },
+    "local-only": { dot: "#94a3b8", label: "Local only" },
+  };
+
+  const { dot, label } = config[syncStatus] || config.offline;
+
+  // Show who else is editing (if someone else was the last editor)
+  const otherEditor =
+    lastEditor && lastEditor !== currentUser ? lastEditor : null;
+
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-pd-muted">
+      <span
+        className="inline-block w-2 h-2 rounded-full"
+        style={{ background: dot }}
+      />
+      <span>{label}</span>
+      {otherEditor && syncStatus === "synced" && (
+        <span className="text-pd-muted opacity-70">
+          · {otherEditor} editing
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function Header() {
   const { state, dispatch } = useNewsletter();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -83,11 +116,7 @@ export default function Header() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {state.lastSaved && (
-              <span className="text-xs text-pd-muted">
-                Saved {new Date(state.lastSaved).toLocaleTimeString()}
-              </span>
-            )}
+            <SyncIndicator />
             {!showResetConfirm ? (
               <button
                 onClick={() => setShowResetConfirm(true)}
