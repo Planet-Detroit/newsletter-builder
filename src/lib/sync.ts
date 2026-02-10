@@ -14,6 +14,7 @@ export const SECTION_GROUPS: Record<string, (keyof NewsletterState)[]> = {
   events: ["events", "eventsHtml"],
   jobs: ["jobs", "jobsShowDescriptions"],
   psCta: ["psCTA", "psCtaUrl", "psCtaButtonText"],
+  civicAction: ["civicActions", "civicActionIntro", "civicActionStoryId"],
   ads: ["ads"],
   sponsors: ["sponsors", "supportCTA", "featuredPromo"],
   env: ["co2", "airQuality", "lakeLevels"],

@@ -5,7 +5,7 @@
  * All styles are INLINE — no <style> block — for maximum email client compatibility.
  */
 
-import type { NewsletterState, PDPost, AdSlot } from "@/types/newsletter";
+import type { NewsletterState, PDPost, AdSlot, CivicAction } from "@/types/newsletter";
 import { STAFF_MEMBERS } from "@/types/newsletter";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -107,6 +107,45 @@ function renderAdsForPosition(ads: AdSlot[], position: AdSlot["position"]): stri
 </div>`
     )
     .join("");
+}
+
+// ── Civic Action Renderer ────────────────────────────────────────────────
+
+const ACTION_EMOJI: Record<string, string> = {
+  attend: "&#x1F4CD;",    // 📍
+  comment: "&#x1F4AC;",   // 💬
+  sign: "&#x270D;&#xFE0F;", // ✍️
+  contact: "&#x1F4DE;",   // 📞
+  volunteer: "&#x1F64B;", // 🙋
+  follow: "&#x1F441;&#xFE0F;", // 👁️
+  "learn-more": "&#x1F4DA;", // 📚
+};
+
+function renderCivicActionHTML(intro: string, actions: CivicAction[]): string {
+  const actionItems = actions
+    .map((a) => {
+      const emoji = ACTION_EMOJI[a.actionType] || "&#x2714;&#xFE0F;";
+      const titleHtml = a.url
+        ? `<a href="${a.url}" style="color:#1e293b;text-decoration:none;font-weight:bold;">${a.title}</a>`
+        : `<strong>${a.title}</strong>`;
+      const linkHtml = a.url
+        ? ` <a href="${a.url}" style="color:#2982C4;font-size:13px;text-decoration:none;">&rarr; Learn more</a>`
+        : "";
+      return `<div style="margin-bottom:14px;padding-left:4px;">
+        <div style="font-size:15px;margin-bottom:3px;">${emoji} ${titleHtml}</div>
+        <div style="font-size:13px;color:#555;line-height:1.5;padding-left:24px;">${a.description}${linkHtml}</div>
+      </div>`;
+    })
+    .join("");
+
+  return `
+<div style="padding:16px 32px;">
+  <div style="background:#f0f7fc;border-left:4px solid #2982C4;border-radius:6px;padding:20px 24px;">
+    <div style="font-size:18px;font-weight:bold;color:#2982C4;margin-bottom:12px;">&#x1F91D; Take Action</div>
+    <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 16px;">${intro}</p>
+    ${actionItems}
+  </div>
+</div>`;
 }
 
 // ── Main Generator ───────────────────────────────────────────────────────
@@ -264,6 +303,11 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Ad slot: after-pd-stories
   parts.push(renderAdsForPosition(state.ads, "after-pd-stories"));
+
+  // Civic Action — Take Action section
+  if (state.civicActionIntro && state.civicActions.length > 0) {
+    parts.push(renderCivicActionHTML(state.civicActionIntro, state.civicActions));
+  }
 
   // Curated News / What We're Reading
   if (selectedStories.length > 0) {

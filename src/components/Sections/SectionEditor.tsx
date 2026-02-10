@@ -14,6 +14,7 @@ import SponsorsEditor from "./SponsorsEditor";
 import HeaderEditor from "./HeaderEditor";
 import FeaturedPromoEditor from "./FeaturedPromoEditor";
 import SupportCtaEditor from "./SupportCtaEditor";
+import CivicActionEditor from "./CivicActionEditor";
 import StaticSection from "./StaticSection";
 
 interface SectionEditorProps {
@@ -28,6 +29,8 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <IntroEditor />;
       case "pd-stories":
         return <PDStoriesSelector />;
+      case "civic-action":
+        return <CivicActionEditor />;
       case "curated-news":
         return <CuratedNewsImport />;
       case "events":

@@ -9,6 +9,7 @@ import {
   CuratedStory,
   EventItem,
   JobListing,
+  CivicAction,
   AdSlot,
   CO2Data,
   AirQualityData,
@@ -46,6 +47,9 @@ const initialState: NewsletterState = {
   eventsHtml: "",
   jobs: [],
   jobsShowDescriptions: true,
+  civicActions: [],
+  civicActionIntro: "",
+  civicActionStoryId: null,
   ads: [],
   co2: null,
   airQuality: null,
@@ -80,6 +84,9 @@ type Action =
   | { type: "SET_EVENTS_HTML"; payload: string }
   | { type: "SET_JOBS"; payload: JobListing[] }
   | { type: "SET_JOBS_SHOW_DESCRIPTIONS"; payload: boolean }
+  | { type: "SET_CIVIC_ACTIONS"; payload: CivicAction[] }
+  | { type: "SET_CIVIC_ACTION_INTRO"; payload: string }
+  | { type: "SET_CIVIC_ACTION_STORY"; payload: number | null }
   | { type: "SET_ADS"; payload: AdSlot[] }
   | { type: "SET_CO2"; payload: CO2Data | null }
   | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
@@ -170,6 +177,12 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return { ...state, jobs: action.payload };
     case "SET_JOBS_SHOW_DESCRIPTIONS":
       return { ...state, jobsShowDescriptions: action.payload };
+    case "SET_CIVIC_ACTIONS":
+      return { ...state, civicActions: action.payload };
+    case "SET_CIVIC_ACTION_INTRO":
+      return { ...state, civicActionIntro: action.payload };
+    case "SET_CIVIC_ACTION_STORY":
+      return { ...state, civicActionStoryId: action.payload };
     case "SET_ADS":
       return { ...state, ads: action.payload };
     case "SET_CO2":
