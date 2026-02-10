@@ -2,6 +2,7 @@
 
 import { useNewsletter } from "@/context/NewsletterContext";
 import { generateNewsletterHTML } from "@/lib/generateNewsletterHTML";
+import { STAFF_MEMBERS } from "@/types/newsletter";
 import { useState } from "react";
 
 function SyncIndicator() {
@@ -68,6 +69,9 @@ export default function Header() {
     try {
       const html = generateNewsletterHTML(state);
 
+      // Look up sender from signoff staff
+      const sender = STAFF_MEMBERS.find((s) => s.id === state.signoffStaffId);
+
       const res = await fetch("/api/activecampaign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,6 +79,8 @@ export default function Header() {
           html,
           subjectLine: state.subjectLine,
           issueDate: state.issueDate,
+          senderName: sender?.name || "Planet Detroit",
+          senderEmail: sender?.email || "newsletter@planetdetroit.org",
         }),
       });
 

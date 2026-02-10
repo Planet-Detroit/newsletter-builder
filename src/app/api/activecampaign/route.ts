@@ -4,6 +4,8 @@ interface RequestBody {
   html: string;
   subjectLine: string;
   issueDate: string;
+  senderName?: string;
+  senderEmail?: string;
 }
 
 const AC_API_URL = process.env.ACTIVECAMPAIGN_API_URL; // e.g. https://planetdetroit.api-us1.com
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[ActiveCampaign] Received POST request');
 
     const body: RequestBody = await request.json();
-    const { html, subjectLine, issueDate } = body;
+    const { html, subjectLine, issueDate, senderName, senderEmail } = body;
 
     if (!html || !subjectLine || !issueDate) {
       return NextResponse.json(
@@ -96,12 +98,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log(`[ActiveCampaign] Found ${listIds.length} lists: ${listIds.join(', ')}`);
 
     // Step 2: Create message via v1 API (message_add)
+    const fromEmail = senderEmail || 'newsletter@planetdetroit.org';
+    const fromName = senderName ? `${senderName} at Planet Detroit` : 'Planet Detroit';
+
     const messagePostData: Record<string, string> = {
       format: 'html',
       subject: subjectLine,
-      fromemail: 'newsletter@planetdetroit.org',
-      fromname: 'Planet Detroit',
-      reply2: 'newsletter@planetdetroit.org',
+      fromemail: fromEmail,
+      fromname: fromName,
+      reply2: fromEmail,
       priority: '3',
       charset: 'utf-8',
       encoding: 'quoted-printable',

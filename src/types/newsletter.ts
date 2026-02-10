@@ -105,6 +105,7 @@ export interface LakeLevelData {
 export interface StaffMember {
   id: string;
   name: string;
+  email: string;
   title: string;
   photoUrl: string;
 }
@@ -113,36 +114,42 @@ export const STAFF_MEMBERS: StaffMember[] = [
   {
     id: "nina",
     name: "Nina Ignaczak",
+    email: "nina@planetdetroit.org",
     title: "Founder",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2025/04/Planet-Detroit1650-nina-copy.jpeg",
   },
   {
     id: "dustin",
     name: "Dustin Blitchok",
+    email: "dustin@planetdetroit.org",
     title: "Managing Editor",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2025/03/Screenshot-2025-03-20-at-3.27.09%E2%80%AFPM.png",
   },
   {
     id: "ethan",
     name: "Ethan Bakuli",
+    email: "ethan@planetdetroit.org",
     title: "Climate Solutions and Service Journalism Reporting Fellow",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2025/03/cropped-Screenshot-2025-03-20-at-3.26.10%E2%80%AFPM.png",
   },
   {
     id: "brian",
     name: "Brian Allnutt",
+    email: "brian@planetdetroit.org",
     title: "Senior Reporter",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2025/04/Planet-Detroit1767-brian.jpeg",
   },
   {
     id: "isabelle",
     name: "Isabelle Tavares",
+    email: "isabelle@planetdetroit.org",
     title: "Community Reporter, Report for America",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2025/04/cropped-Planet-Detroit1899-isabelle.jpeg",
   },
   {
     id: "ian",
     name: "Ian Solomon",
+    email: "ian@planetdetroit.org",
     title: "Outdoors Reporter",
     photoUrl: "https://planetdetroit.org/wp-content/uploads/2026/02/cropped-IMG_9024-2.png",
   },
