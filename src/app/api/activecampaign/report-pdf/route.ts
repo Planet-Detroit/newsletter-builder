@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
 
     // Dynamic import pdfkit (no built-in types)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const PDFDocument = require("pdfkit") as new (options?: Record<string, unknown>) => any;
+    const pdfkitModule = require("pdfkit");
+    // Handle both CJS default export and ESM-style .default
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const PDFDocument = (pdfkitModule.default || pdfkitModule) as new (options?: Record<string, unknown>) => any;
 
     // Build PDF in memory
     const chunks: Buffer[] = [];
