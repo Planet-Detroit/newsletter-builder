@@ -4,9 +4,18 @@ import { NextRequest, NextResponse } from "next/server";
  * GET /api/activecampaign/link-stats?campaignId=xxx
  * Gets per-link click data for a campaign.
  *
- * Step 1: Use v3 API to discover the messageId linked to this campaign.
- * Step 2: Use v1 API campaign_report_link_list with the real messageId.
+ * Tries multiple AC API strategies in order:
+ *   1. v3 API — GET /api/3/links filtered by campaignid (most reliable)
+ *   2. v1 API — campaign_report_link_list with message ID lookup
+ *   3. v1 API — campaign_report_link_list with campaignId as messageId
  */
+
+interface LinkResult {
+  url: string;
+  name: string;
+  clicks: number;
+  uniqueClicks: number;
+}
 
 export async function GET(request: NextRequest) {
   const apiUrl = process.env.ACTIVECAMPAIGN_API_URL;
@@ -20,70 +29,38 @@ export async function GET(request: NextRequest) {
   }
 
   const campaignId = request.nextUrl.searchParams.get("campaignId");
-  let messageId = request.nextUrl.searchParams.get("messageId");
-
   if (!campaignId) {
     return NextResponse.json({ error: "Missing campaignId parameter" }, { status: 400 });
   }
 
   try {
-    // Step 1: Discover the real messageId via v3 API if not provided
-    if (!messageId) {
-      try {
-        const cmRes = await fetch(
-          `${apiUrl}/api/3/campaigns/${campaignId}/campaignMessages`,
-          {
-            headers: { "Api-Token": apiKey },
-            signal: AbortSignal.timeout(8000),
-          }
-        );
-        if (cmRes.ok) {
-          const cmData = await cmRes.json();
-          const messages = cmData.campaignMessages || [];
-          if (messages.length > 0) {
-            // Each campaignMessage has a "message" field with the message ID
-            messageId = messages[0].message;
-            console.log(`[link-stats] Resolved messageId=${messageId} for campaign=${campaignId}`);
-          }
-        }
-      } catch (lookupErr) {
-        console.warn("[link-stats] Could not resolve messageId via v3, falling back to campaignId:", lookupErr);
+    // Strategy 1: v3 API — GET /api/3/links filtered by campaignid
+    const v3Links = await tryV3Links(apiUrl, apiKey, campaignId);
+    if (v3Links.length > 0) {
+      console.log(`[link-stats] v3 API returned ${v3Links.length} links for campaign=${campaignId}`);
+      return NextResponse.json({ links: v3Links });
+    }
+
+    // Strategy 2: v1 API with message ID lookup via v3 campaignMessages
+    const messageId = await lookupMessageId(apiUrl, apiKey, campaignId);
+    if (messageId && messageId !== campaignId) {
+      const v1Links = await tryV1LinkReport(apiUrl, apiKey, campaignId, messageId);
+      if (v1Links.length > 0) {
+        console.log(`[link-stats] v1 API (messageId=${messageId}) returned ${v1Links.length} links`);
+        return NextResponse.json({ links: v1Links });
       }
     }
 
-    // Fall back to campaignId if lookup didn't find anything
-    if (!messageId) messageId = campaignId;
-
-    // Step 2: Fetch link report via v1 API
-    const v1Url = `${apiUrl}/admin/api.php?api_action=campaign_report_link_list&campaignid=${campaignId}&messageid=${messageId}&api_output=json&api_key=${apiKey}`;
-
-    const res = await fetch(v1Url, {
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) {
-      throw new Error(`ActiveCampaign returned ${res.status}`);
+    // Strategy 3: v1 API with campaignId as messageId
+    const v1Fallback = await tryV1LinkReport(apiUrl, apiKey, campaignId, campaignId);
+    if (v1Fallback.length > 0) {
+      console.log(`[link-stats] v1 API fallback returned ${v1Fallback.length} links`);
+      return NextResponse.json({ links: v1Fallback });
     }
 
-    const data = await res.json();
-
-    if (data.result_code === 0) {
-      // No data — try one more fallback with campaignId as messageId if we used a different one
-      if (messageId !== campaignId) {
-        console.log(`[link-stats] Retrying with messageId=campaignId (${campaignId})`);
-        const fallbackUrl = `${apiUrl}/admin/api.php?api_action=campaign_report_link_list&campaignid=${campaignId}&messageid=${campaignId}&api_output=json&api_key=${apiKey}`;
-        const fallbackRes = await fetch(fallbackUrl, { signal: AbortSignal.timeout(10000) });
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          if (fallbackData.result_code !== 0) {
-            return NextResponse.json({ links: extractLinks(fallbackData) });
-          }
-        }
-      }
-      return NextResponse.json({ links: [], message: data.result_message || "No link data found" });
-    }
-
-    return NextResponse.json({ links: extractLinks(data) });
+    // Nothing worked
+    console.log(`[link-stats] No link data found for campaign=${campaignId} across all strategies`);
+    return NextResponse.json({ links: [], message: "No link data found" });
   } catch (error) {
     console.error("ActiveCampaign link stats error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -91,9 +68,98 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Strategy 1: Use v3 API to get links with click counts.
+ * GET /api/3/links?filters[campaignid]={id}&limit=100
+ */
+async function tryV3Links(apiUrl: string, apiKey: string, campaignId: string): Promise<LinkResult[]> {
+  try {
+    // Try filtered links endpoint
+    const url = `${apiUrl}/api/3/links?filters[campaignid]=${campaignId}&limit=100`;
+    const res = await fetch(url, {
+      headers: { "Api-Token": apiKey },
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!res.ok) {
+      console.warn(`[link-stats] v3 links endpoint returned ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const links = (data.links || []) as Array<{
+      link: string;
+      name?: string;
+      clicks?: string | number;
+      uniqueClicks?: string | number;
+      uniqueclicks?: string | number;
+    }>;
+
+    if (links.length === 0) return [];
+
+    const result: LinkResult[] = links
+      .filter((l) => l.link && l.link.trim())
+      .map((l) => ({
+        url: l.link,
+        name: l.name || "",
+        clicks: parseInt(String(l.clicks || "0"), 10),
+        uniqueClicks: parseInt(String(l.uniqueClicks || l.uniqueclicks || "0"), 10),
+      }))
+      .filter((l) => l.clicks > 0 || l.uniqueClicks > 0)
+      .sort((a, b) => b.clicks - a.clicks);
+
+    return result;
+  } catch (err) {
+    console.warn("[link-stats] v3 links strategy failed:", err);
+    return [];
+  }
+}
+
+/**
+ * Look up the message ID associated with a campaign via v3 API.
+ */
+async function lookupMessageId(apiUrl: string, apiKey: string, campaignId: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${apiUrl}/api/3/campaigns/${campaignId}/campaignMessages`,
+      {
+        headers: { "Api-Token": apiKey },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const messages = data.campaignMessages || [];
+    if (messages.length > 0 && messages[0].message) {
+      return String(messages[0].message);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Strategy 2/3: v1 API campaign_report_link_list
+ */
+async function tryV1LinkReport(apiUrl: string, apiKey: string, campaignId: string, messageId: string): Promise<LinkResult[]> {
+  try {
+    const url = `${apiUrl}/admin/api.php?api_action=campaign_report_link_list&campaignid=${campaignId}&messageid=${messageId}&api_output=json&api_key=${apiKey}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    if (data.result_code === 0) return [];
+
+    return extractLinksFromV1(data);
+  } catch {
+    return [];
+  }
+}
+
 /** Extract link objects from the AC v1 response (numbered keys: 0, 1, 2, ...) */
-function extractLinks(data: Record<string, unknown>): { url: string; clicks: number; uniqueClicks: number; name: string }[] {
-  const links: { url: string; clicks: number; uniqueClicks: number; name: string }[] = [];
+function extractLinksFromV1(data: Record<string, unknown>): LinkResult[] {
+  const links: LinkResult[] = [];
 
   for (const key of Object.keys(data)) {
     const val = data[key] as Record<string, string> | null;
