@@ -42,8 +42,13 @@ export async function GET() {
         sendDate: c.sdate || null,
         status: c.status === "5" ? "sent" : c.status === "2" ? "draft" : c.status === "6" ? "sending" : c.status,
         sendCount: parseInt(c.send_amt || "0", 10),
-        opens: parseInt(c.uniqueopens || "0", 10),
+        totalOpens: parseInt(c.opens || "0", 10),
+        uniqueOpens: parseInt(c.uniqueopens || "0", 10),
         clicks: parseInt(c.linkclicks || "0", 10),
+        uniqueClicks: parseInt(c.uniquelinkclicks || "0", 10),
+        unsubscribes: parseInt(c.unsubscribes || "0", 10),
+        // Keep 'opens' as alias for uniqueOpens for backward compat
+        opens: parseInt(c.uniqueopens || "0", 10),
       }))
       .filter((c: { status: string; sendDate: string | null }) => {
         // Only sent campaigns

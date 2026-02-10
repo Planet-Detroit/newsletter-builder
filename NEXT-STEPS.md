@@ -89,7 +89,7 @@ These aren't features — they're investments that make the existing system more
 
 ### Separate newsletter content from UI state
 
-**What:** The `sections` array (which panels are open/ready/empty) lives in the same state object as actual newsletter content (subject line, stories, ads). These are different concerns.
+**What:** The `sections` array (which panels are open/ready/empty) lives in the same state object as actual newsletter content (subject line, stories, ads). These are separate concerns.
 **Why:** The sync system has to carefully exclude `sections` from merge logic. If they were separate state objects from the start, sync would be simpler and less error-prone.
 **When:** Next time you do a significant refactor. Not urgent, but would simplify future sync improvements.
 

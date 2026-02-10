@@ -253,6 +253,7 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 6, automationLevel: "manual", tab: "content" },
   // Ads tab — optional sponsored content
   { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads" },
+  { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads" },
   // Settings tab — static / set-and-forget sections
   { id: "header", title: "Header & Logo", description: "Logo and newsletter date", status: "ready", icon: "📰", order: 1, automationLevel: "full", tab: "settings" },
   { id: "co2", title: "CO₂ Widget", description: "Current atmospheric CO₂ from NOAA/Scripps", status: "empty", icon: "🌍", order: 2, automationLevel: "full", tab: "settings" },

@@ -7,6 +7,7 @@ import CuratedNewsImport from "./CuratedNewsImport";
 import EventsSelector from "./EventsSelector";
 import JobsSelector from "./JobsSelector";
 import AdManager from "./AdManager";
+import AdTracker from "./AdTracker";
 import CO2Widget from "./CO2Widget";
 import PSCtaEditor from "./PSCtaEditor";
 import SponsorsEditor from "./SponsorsEditor";
@@ -35,6 +36,8 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <JobsSelector />;
       case "ads":
         return <AdManager />;
+      case "ad-tracker":
+        return <AdTracker />;
       case "co2":
         return <CO2Widget />;
       case "ps-cta":

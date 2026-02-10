@@ -5,8 +5,18 @@ export interface ACCampaign {
   sendDate: string | null;
   status: string;
   sendCount: number;
-  opens: number;
+  /** Total opens (includes repeat opens by same subscriber) */
+  totalOpens: number;
+  /** Unique opens (one per subscriber) */
+  uniqueOpens: number;
+  /** Total link clicks */
   clicks: number;
+  /** Unique link clicks (one per subscriber per link) */
+  uniqueClicks: number;
+  /** Unsubscribes from this campaign */
+  unsubscribes: number;
+  /** @deprecated Use uniqueOpens instead */
+  opens: number;
 }
 
 /** Per-link click data (from v1 API) */
