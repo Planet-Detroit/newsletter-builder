@@ -23,6 +23,14 @@ export default function AdTracker() {
   const [campaignLinks, setCampaignLinks] = useState<CampaignLinks>({});
   const [linksLoading, setLinksLoading] = useState<Set<string>>(new Set());
 
+  // Ad domain filter (comma-separated domains to track)
+  const [domainFilter, setDomainFilter] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pd-ad-domains") || "";
+    }
+    return "";
+  });
+
   // Snapshot
   const [snapNote, setSnapNote] = useState("");
   const [snapSaving, setSnapSaving] = useState(false);
@@ -132,27 +140,30 @@ export default function AdTracker() {
     ? ((aggregate.uniqueClicks / aggregate.sendCount) * 100).toFixed(2)
     : "0";
 
-  // Identify ad links
+  // Parse tracked domains from the filter input
+  const trackedDomains = domainFilter
+    .split(",")
+    .map((d) => d.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, ""))
+    .filter((d) => d.length > 0);
+
+  // Save domains to localStorage when they change
+  const handleDomainChange = (val: string) => {
+    setDomainFilter(val);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pd-ad-domains", val);
+    }
+  };
+
+  // Match links by domain
   const isAdLink = (url: string): boolean => {
-    return state.ads.some((ad) => {
-      const hrefMatches = ad.htmlContent.matchAll(/href="([^"]+)"/g);
-      for (const match of hrefMatches) {
-        const adUrl = match[1].replace(/&amp;/g, "&");
-        const stripUtm = (u: string) => {
-          try {
-            const parsed = new URL(u);
-            for (const key of [...parsed.searchParams.keys()]) {
-              if (key.startsWith("utm_")) parsed.searchParams.delete(key);
-            }
-            return parsed.origin + parsed.pathname;
-          } catch {
-            return u;
-          }
-        };
-        if (stripUtm(url) === stripUtm(adUrl)) return true;
-      }
-      return false;
-    });
+    if (trackedDomains.length === 0) return false;
+    try {
+      const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+      return trackedDomains.some((d) => hostname.includes(d));
+    } catch {
+      const lower = url.toLowerCase();
+      return trackedDomains.some((d) => lower.includes(d));
+    }
   };
 
   // Aggregate link stats across selected campaigns
@@ -175,7 +186,6 @@ export default function AdTracker() {
   })();
 
   const adLinks = aggregatedLinks.filter((l) => isAdLink(l.url));
-  const otherLinks = aggregatedLinks.filter((l) => !isAdLink(l.url));
 
   /* ── Snapshot handler ───────────────────────────────── */
 
@@ -412,9 +422,30 @@ export default function AdTracker() {
             </div>
           </div>
 
+          {/* Ad domain filter */}
+          <div>
+            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-1.5">Track Ad Domains</h4>
+            <input
+              type="text"
+              value={domainFilter}
+              onChange={(e) => handleDomainChange(e.target.value)}
+              placeholder="e.g. revivalresearch.org, acmecorp.com"
+              className="w-full px-3 py-2 border border-pd-border rounded-lg text-xs focus:outline-none focus:border-pd-blue bg-white"
+            />
+            <p className="text-[10px] text-pd-muted mt-1">
+              Comma-separated domains. Only links matching these domains will appear below.
+            </p>
+          </div>
+
           {/* Link stats */}
           {anyLinksLoading && (
             <p className="text-xs text-pd-muted">Loading link data...</p>
+          )}
+
+          {!anyLinksLoading && trackedDomains.length === 0 && aggregatedLinks.length > 0 && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+              <p className="text-blue-800">Enter one or more ad domains above to filter link clicks (e.g. revivalresearch.org).</p>
+            </div>
           )}
 
           {!anyLinksLoading && adLinks.length > 0 && (
@@ -430,9 +461,9 @@ export default function AdTracker() {
             </div>
           )}
 
-          {!anyLinksLoading && selectedIds.size > 0 && adLinks.length === 0 && aggregatedLinks.length > 0 && (
+          {!anyLinksLoading && trackedDomains.length > 0 && adLinks.length === 0 && aggregatedLinks.length > 0 && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs">
-              <p className="text-amber-800">Link data loaded but no matching ad links found. Make sure your ads are set up in the Ad Builder with the correct destination URLs.</p>
+              <p className="text-amber-800">No links found matching: {trackedDomains.join(", ")}. Check the domain spelling or try a broader match.</p>
             </div>
           )}
 
