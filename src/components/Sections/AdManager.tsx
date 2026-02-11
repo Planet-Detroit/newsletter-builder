@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNewsletter } from "@/context/NewsletterContext";
-import { AdSlot } from "@/types/newsletter";
+import { AdSlot, SavedAd } from "@/types/newsletter";
 import MiniWysiwyg from "./MiniWysiwyg";
 
 const POSITIONS = [
@@ -136,11 +136,38 @@ export default function AdManager() {
   const [colorScheme, setColorScheme] = useState<ColorScheme>("blue");
   const [position, setPosition] = useState<AdSlot["position"]>("after-intro");
   const [adName, setAdName] = useState("");
+  const [editorNote, setEditorNote] = useState("");
 
   // Image upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Saved ads library
+  const [savedAds, setSavedAds] = useState<SavedAd[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [editingLibraryId, setEditingLibraryId] = useState<string | null>(null);
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+
+  const fetchSavedAds = useCallback(async () => {
+    setLibraryLoading(true);
+    try {
+      const res = await fetch("/api/ads-library");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedAds(data.ads || []);
+      }
+    } catch {
+      // Silently fail — library is a convenience feature
+    } finally {
+      setLibraryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSavedAds();
+  }, [fetchSavedAds]);
 
   const handleImageUpload = useCallback(async (file: File) => {
     setUploading(true);
@@ -236,17 +263,7 @@ export default function AdManager() {
     setShowHtmlEditor(true);
   };
 
-  const addToNewsletter = () => {
-    const name = adName.trim() || `Ad — ${headline.slice(0, 30)}`;
-    const ad: AdSlot = {
-      id: `ad-${Date.now()}`,
-      name,
-      htmlContent: activeHtml,
-      position,
-      active: true,
-    };
-    dispatch({ type: "SET_ADS", payload: [...state.ads, ad] });
-    // Reset builder
+  const resetBuilder = () => {
     setHeadline("");
     setCopy("");
     setCtaUrl("");
@@ -256,8 +273,100 @@ export default function AdManager() {
     setShowSecondCta(false);
     setImageUrl("");
     setAdName("");
+    setEditorNote("");
     setEditedHtml("");
     setShowHtmlEditor(false);
+    setEditingLibraryId(null);
+  };
+
+  const addToNewsletter = () => {
+    const name = adName.trim() || `Ad — ${headline.slice(0, 30)}`;
+    const ad: AdSlot = {
+      id: `ad-${Date.now()}`,
+      name,
+      htmlContent: activeHtml,
+      position,
+      active: true,
+      ...(editorNote.trim() ? { editorNote: editorNote.trim() } : {}),
+    };
+    dispatch({ type: "SET_ADS", payload: [...state.ads, ad] });
+    resetBuilder();
+  };
+
+  const saveToLibrary = async () => {
+    setSavingToLibrary(true);
+    try {
+      const ad = {
+        name: adName.trim() || `Ad — ${headline.slice(0, 30)}`,
+        editorNote: editorNote.trim(),
+        headline,
+        copy,
+        ctaUrl: ctaUrl || "#",
+        ctaText,
+        ctaUrl2: showSecondCta ? ctaUrl2 : "",
+        ctaText2: showSecondCta ? ctaText2 : "",
+        colorScheme,
+        imageUrl,
+        htmlContent: activeHtml,
+        position,
+      };
+      const res = await fetch("/api/ads-library", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ad, id: editingLibraryId || undefined }),
+      });
+      if (res.ok) {
+        await fetchSavedAds();
+        if (!editingLibraryId) resetBuilder();
+        setEditingLibraryId(null);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setSavingToLibrary(false);
+    }
+  };
+
+  const loadFromLibrary = (saved: SavedAd) => {
+    const ad: AdSlot = {
+      id: `ad-${Date.now()}`,
+      name: saved.name,
+      htmlContent: saved.htmlContent,
+      position: saved.position,
+      active: true,
+      ...(saved.editorNote ? { editorNote: saved.editorNote } : {}),
+    };
+    dispatch({ type: "SET_ADS", payload: [...state.ads, ad] });
+  };
+
+  const editFromLibrary = (saved: SavedAd) => {
+    setHeadline(saved.headline);
+    setCopy(saved.copy);
+    setCtaUrl(saved.ctaUrl === "#" ? "" : saved.ctaUrl);
+    setCtaText(saved.ctaText);
+    setCtaUrl2(saved.ctaUrl2);
+    setCtaText2(saved.ctaText2);
+    setShowSecondCta(!!(saved.ctaUrl2 && saved.ctaText2));
+    setImageUrl(saved.imageUrl);
+    setColorScheme(saved.colorScheme);
+    setPosition(saved.position);
+    setAdName(saved.name);
+    setEditorNote(saved.editorNote);
+    setEditingLibraryId(saved.id);
+    setEditedHtml("");
+    setShowHtmlEditor(false);
+  };
+
+  const deleteFromLibrary = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ads-library?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (res.ok) {
+        setSavedAds((prev) => prev.filter((a) => a.id !== id));
+        if (editingLibraryId === id) setEditingLibraryId(null);
+      }
+    } catch {
+      // Silently fail
+    }
   };
 
   const toggleAd = (id: string) => {
@@ -281,7 +390,11 @@ export default function AdManager() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-sm font-medium text-foreground">Ad Image <span className="text-pd-muted font-normal">(optional)</span></label>
-            <span className="text-xs text-pd-muted">970 × 350px recommended</span>
+            <span className="text-xs text-pd-muted">
+              970 × 350px recommended
+              {" · "}
+              <a href="https://planetdetroit.org/wp-admin/upload.php" target="_blank" rel="noopener noreferrer" className="text-pd-blue hover:underline">WP Media Library</a>
+            </span>
           </div>
           <div className="flex gap-2">
             <input
@@ -525,6 +638,16 @@ export default function AdManager() {
             placeholder="Ad name (e.g., Revival Research — Feb 2026)"
             className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue bg-white"
           />
+          <div>
+            <textarea
+              value={editorNote}
+              onChange={(e) => setEditorNote(e.target.value)}
+              placeholder="Internal note (e.g., 'Run through March', 'Dustin handles billing')"
+              rows={2}
+              className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue bg-white resize-y"
+            />
+            <p className="text-xs text-pd-muted mt-1">This note is for editors only and will not appear in the newsletter.</p>
+          </div>
           <select
             value={position}
             onChange={(e) => setPosition(e.target.value as AdSlot["position"])}
@@ -541,8 +664,100 @@ export default function AdManager() {
           >
             Add Ad to Newsletter
           </button>
+          <button
+            onClick={saveToLibrary}
+            disabled={savingToLibrary}
+            className="w-full px-4 py-2.5 text-sm font-medium rounded-lg cursor-pointer transition-colors border-2 disabled:opacity-50"
+            style={{ borderColor: "var(--pd-blue)", color: "var(--pd-blue)" }}
+          >
+            {savingToLibrary
+              ? "Saving…"
+              : editingLibraryId
+                ? "Update in Library"
+                : "Save to Library"}
+          </button>
+          {editingLibraryId && (
+            <button
+              onClick={resetBuilder}
+              className="w-full px-4 py-2 text-xs text-pd-muted hover:underline cursor-pointer"
+            >
+              Cancel editing &mdash; clear builder
+            </button>
+          )}
         </div>
       )}
+
+      {/* ── Saved Ads Library ────────────────────────────── */}
+      <div className="border border-pd-border rounded-lg overflow-hidden">
+        <button
+          onClick={() => setLibraryOpen(!libraryOpen)}
+          className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer"
+        >
+          <span className="text-sm font-medium text-foreground">
+            Saved Ads Library
+            {savedAds.length > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-pd-blue text-white">
+                {savedAds.length}
+              </span>
+            )}
+          </span>
+          <span className="text-pd-muted text-xs">{libraryOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {libraryOpen && (
+          <div className="p-3 space-y-2 border-t border-pd-border">
+            {libraryLoading && (
+              <p className="text-xs text-pd-muted py-2 text-center">Loading saved ads…</p>
+            )}
+            {!libraryLoading && savedAds.length === 0 && (
+              <p className="text-xs text-pd-muted py-2 text-center">No saved ads yet. Build an ad above and click &quot;Save to Library&quot; to reuse it across newsletters.</p>
+            )}
+            {savedAds.map((saved) => (
+              <div key={saved.id} className="p-3 border border-pd-border rounded-lg bg-white">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{saved.name}</p>
+                    <p className="text-xs text-pd-muted">
+                      {POSITIONS.find((p) => p.value === saved.position)?.label}
+                      {" · "}
+                      {new Date(saved.updatedAt).toLocaleDateString()}
+                    </p>
+                    {saved.editorNote && (
+                      <p className="text-xs italic mt-1" style={{ color: "#b45309" }}>{saved.editorNote}</p>
+                    )}
+                  </div>
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0 mt-1"
+                    style={{ background: COLOR_SCHEMES[saved.colorScheme]?.accent || "#ccc" }}
+                    title={COLOR_SCHEMES[saved.colorScheme]?.name}
+                  />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => loadFromLibrary(saved)}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium rounded border transition-colors cursor-pointer hover:bg-slate-50"
+                    style={{ borderColor: "var(--pd-blue)", color: "var(--pd-blue)" }}
+                  >
+                    Load into Newsletter
+                  </button>
+                  <button
+                    onClick={() => editFromLibrary(saved)}
+                    className="px-2 py-1.5 text-xs font-medium rounded border border-pd-border text-pd-muted hover:text-foreground hover:border-slate-400 transition-colors cursor-pointer"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => deleteFromLibrary(saved.id)}
+                    className="px-2 py-1.5 text-xs font-medium rounded border border-pd-border text-pd-danger hover:bg-red-50 hover:border-pd-danger transition-colors cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* ── Active Ad Slots ──────────────────────────────── */}
       {state.ads.length > 0 && (
@@ -562,6 +777,9 @@ export default function AdManager() {
                   <p className="text-xs text-pd-muted">
                     {POSITIONS.find((p) => p.value === ad.position)?.label}
                   </p>
+                  {ad.editorNote && (
+                    <p className="text-xs italic mt-0.5" style={{ color: "#b45309" }}>{ad.editorNote}</p>
+                  )}
                 </div>
               </div>
               <button onClick={() => removeAd(ad.id)} className="text-pd-danger text-xs hover:underline cursor-pointer">

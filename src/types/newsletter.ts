@@ -112,6 +112,25 @@ export interface AdSlot {
   htmlContent: string;
   position: "after-intro" | "after-pd-stories" | "after-reading" | "before-footer";
   active: boolean;
+  editorNote?: string;
+}
+
+export interface SavedAd {
+  id: string;
+  name: string;
+  editorNote: string;
+  savedAt: string;
+  updatedAt: string;
+  headline: string;
+  copy: string;
+  ctaUrl: string;
+  ctaText: string;
+  ctaUrl2: string;
+  ctaText2: string;
+  colorScheme: "blue" | "warm";
+  imageUrl: string;
+  htmlContent: string;
+  position: AdSlot["position"];
 }
 
 export interface CO2Data {
