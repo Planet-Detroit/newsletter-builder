@@ -95,7 +95,7 @@ export default function Dashboard() {
 
         {/* Quick stats — only on content tab */}
         {activeTab === "content" && (
-          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4">
             <StatCard
               label="PD Stories"
               value={state.pdPosts.filter((p) => p.selected).length}
@@ -105,6 +105,14 @@ export default function Dashboard() {
               label="Curated News"
               value={state.curatedStories.length}
               unit="stories"
+            />
+            <StatCard
+              label="Public Meetings"
+              value={
+                (state.publicMeetings || []).filter((m) => m.selected).length +
+                (state.commentPeriods || []).filter((c) => c.selected).length
+              }
+              unit="selected"
             />
             <StatCard
               label="Events"

@@ -57,6 +57,31 @@ export interface EventItem {
   selected: boolean;
 }
 
+export interface PublicMeeting {
+  id: string;
+  title: string;
+  agency: string;
+  start_datetime: string;
+  location: string;
+  is_hybrid: boolean;
+  is_virtual: boolean;
+  accepts_public_comment: boolean;
+  details_url: string;
+  issue_tags: string[];
+  selected: boolean;
+}
+
+export interface CommentPeriod {
+  id: string;
+  title: string;
+  agency: string;
+  end_date: string;
+  days_remaining: number;
+  comment_url: string;
+  description: string;
+  selected: boolean;
+}
+
 export type CivicActionType = "attend" | "comment" | "sign" | "contact" | "volunteer" | "follow" | "learn-more";
 
 export interface CivicAction {
@@ -200,6 +225,9 @@ export interface NewsletterState {
   civicActions: CivicAction[];
   civicActionIntro: string;
   civicActionStoryId: number | null;
+  publicMeetings: PublicMeeting[];
+  commentPeriods: CommentPeriod[];
+  publicMeetingsIntro: string;
   ads: AdSlot[];
   co2: CO2Data | null;
   airQuality: AirQualityData | null;
@@ -261,10 +289,11 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 1, automationLevel: "semi", tab: "content" },
   { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 2, automationLevel: "full", tab: "content" },
   { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 3, automationLevel: "semi", tab: "content" },
-  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 4, automationLevel: "full", tab: "content" },
-  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 5, automationLevel: "semi", tab: "content" },
-  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 6, automationLevel: "semi", tab: "content" },
-  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 7, automationLevel: "manual", tab: "content" },
+  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 4, automationLevel: "semi", tab: "content" },
+  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 5, automationLevel: "full", tab: "content" },
+  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 6, automationLevel: "semi", tab: "content" },
+  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 7, automationLevel: "semi", tab: "content" },
+  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 8, automationLevel: "manual", tab: "content" },
   // Ads tab — optional sponsored content
   { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads" },
   { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads" },

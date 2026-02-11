@@ -10,6 +10,8 @@ import {
   EventItem,
   JobListing,
   CivicAction,
+  PublicMeeting,
+  CommentPeriod,
   AdSlot,
   CO2Data,
   AirQualityData,
@@ -50,6 +52,9 @@ const initialState: NewsletterState = {
   civicActions: [],
   civicActionIntro: "",
   civicActionStoryId: null,
+  publicMeetings: [],
+  commentPeriods: [],
+  publicMeetingsIntro: "",
   ads: [],
   co2: null,
   airQuality: null,
@@ -87,6 +92,9 @@ type Action =
   | { type: "SET_CIVIC_ACTIONS"; payload: CivicAction[] }
   | { type: "SET_CIVIC_ACTION_INTRO"; payload: string }
   | { type: "SET_CIVIC_ACTION_STORY"; payload: number | null }
+  | { type: "SET_PUBLIC_MEETINGS"; payload: PublicMeeting[] }
+  | { type: "SET_COMMENT_PERIODS"; payload: CommentPeriod[] }
+  | { type: "SET_PUBLIC_MEETINGS_INTRO"; payload: string }
   | { type: "SET_ADS"; payload: AdSlot[] }
   | { type: "SET_CO2"; payload: CO2Data | null }
   | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
@@ -183,6 +191,12 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return { ...state, civicActionIntro: action.payload };
     case "SET_CIVIC_ACTION_STORY":
       return { ...state, civicActionStoryId: action.payload };
+    case "SET_PUBLIC_MEETINGS":
+      return { ...state, publicMeetings: action.payload };
+    case "SET_COMMENT_PERIODS":
+      return { ...state, commentPeriods: action.payload };
+    case "SET_PUBLIC_MEETINGS_INTRO":
+      return { ...state, publicMeetingsIntro: action.payload };
     case "SET_ADS":
       return { ...state, ads: action.payload };
     case "SET_CO2":
@@ -204,12 +218,15 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return {
         ...initialState,
         issueDate: new Date().toISOString().slice(0, 10),
-        // Preserve ads, jobs, and events across issue resets
+        // Preserve ads, jobs, events, and public meetings across issue resets
         ads: state.ads,
         jobs: state.jobs,
         jobsShowDescriptions: state.jobsShowDescriptions,
         events: state.events,
         eventsHtml: state.eventsHtml,
+        publicMeetings: state.publicMeetings,
+        commentPeriods: state.commentPeriods,
+        publicMeetingsIntro: state.publicMeetingsIntro,
       };
     default:
       return state;

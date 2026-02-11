@@ -5,7 +5,7 @@
  * All styles are INLINE — no <style> block — for maximum email client compatibility.
  */
 
-import type { NewsletterState, PDPost, AdSlot, CivicAction } from "@/types/newsletter";
+import type { NewsletterState, PDPost, AdSlot, CivicAction, PublicMeeting, CommentPeriod } from "@/types/newsletter";
 import { STAFF_MEMBERS } from "@/types/newsletter";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -146,6 +146,104 @@ function renderCivicActionHTML(intro: string, actions: CivicAction[]): string {
     ${actionItems}
   </div>
 </div>`;
+}
+
+// ── Public Meetings & Comment Periods Renderer ──────────────────────────
+
+function formatMeetingDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function renderPublicMeetingsHTML(
+  intro: string,
+  meetings: PublicMeeting[],
+  commentPeriods: CommentPeriod[]
+): string {
+  const parts: string[] = [];
+
+  parts.push(`
+<div style="padding:16px 32px;">
+  <div style="background:#f0f7fc;border-left:4px solid #2982C4;border-radius:6px;padding:20px 24px;">
+    <div style="font-size:18px;font-weight:bold;color:#2982C4;margin-bottom:12px;">&#x1F3DB;&#xFE0F; Public Meetings &amp; Comment Periods</div>`);
+
+  if (intro) {
+    parts.push(`    <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 16px;">${intro}</p>`);
+  }
+
+  // Meetings
+  if (meetings.length > 0) {
+    parts.push(`    <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Upcoming Meetings</div>`);
+    for (const m of meetings) {
+      const badges: string[] = [];
+      if (m.is_virtual) badges.push(`<span style="font-size:10px;font-weight:bold;color:#7c3aed;border:1px solid #7c3aed;padding:1px 5px;border-radius:3px;margin-left:6px;">Virtual</span>`);
+      if (m.is_hybrid) badges.push(`<span style="font-size:10px;font-weight:bold;color:#0891b2;border:1px solid #0891b2;padding:1px 5px;border-radius:3px;margin-left:6px;">Hybrid</span>`);
+      if (m.accepts_public_comment) badges.push(`<span style="font-size:10px;font-weight:bold;color:#16a34a;border:1px solid #16a34a;padding:1px 5px;border-radius:3px;margin-left:6px;">Public Comment</span>`);
+      const badgesHtml = badges.join("");
+
+      const titleHtml = m.details_url
+        ? `<a href="${m.details_url}" style="color:#1e293b;text-decoration:none;font-weight:bold;">${m.title}</a>`
+        : `<strong>${m.title}</strong>`;
+      const linkHtml = m.details_url
+        ? ` <a href="${m.details_url}" style="color:#2982C4;font-size:12px;text-decoration:none;">&rarr; Details</a>`
+        : "";
+
+      parts.push(`      <div style="margin-bottom:12px;padding-left:4px;">
+        <div style="font-size:14px;margin-bottom:2px;">${titleHtml}${badgesHtml}</div>
+        <div style="font-size:12px;color:#64748b;line-height:1.5;">
+          <span style="font-weight:600;color:#2982C4;">${m.agency}</span>
+          &middot; ${formatMeetingDate(m.start_datetime)}${m.location ? ` &middot; ${m.location}` : ""}${linkHtml}
+        </div>
+      </div>`);
+    }
+  }
+
+  // Comment Periods
+  if (commentPeriods.length > 0) {
+    if (meetings.length > 0) {
+      parts.push(`    <div style="height:1px;background:#d4e8f7;margin:14px 0;"></div>`);
+    }
+    parts.push(`    <div style="font-size:13px;font-weight:bold;color:#1e293b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Open Comment Periods</div>`);
+    for (const cp of commentPeriods) {
+      const days = cp.days_remaining;
+      let urgencyColor = "#16a34a"; // green
+      let urgencyLabel = `${days} days left`;
+      if (days < 7) {
+        urgencyColor = "#dc2626"; // red
+        urgencyLabel = days <= 1 ? "Closing soon!" : `${days} days left`;
+      } else if (days <= 14) {
+        urgencyColor = "#d97706"; // amber
+      }
+
+      const titleHtml = cp.comment_url
+        ? `<a href="${cp.comment_url}" style="color:#1e293b;text-decoration:none;font-weight:bold;">${cp.title}</a>`
+        : `<strong>${cp.title}</strong>`;
+      const linkHtml = cp.comment_url
+        ? ` <a href="${cp.comment_url}" style="color:#2982C4;font-size:12px;text-decoration:none;">&rarr; Submit comment</a>`
+        : "";
+
+      parts.push(`      <div style="margin-bottom:12px;padding-left:4px;">
+        <div style="font-size:14px;margin-bottom:2px;">${titleHtml} <span style="font-size:10px;font-weight:bold;color:${urgencyColor};border:1px solid ${urgencyColor};padding:1px 5px;border-radius:3px;margin-left:6px;">${urgencyLabel}</span></div>
+        <div style="font-size:12px;color:#64748b;line-height:1.5;">
+          <span style="font-weight:600;color:#2982C4;">${cp.agency}</span>
+          &middot; Closes ${cp.end_date}${linkHtml}
+        </div>
+        ${cp.description ? `<div style="font-size:12px;color:#555;line-height:1.4;margin-top:3px;">${cp.description}</div>` : ""}
+      </div>`);
+    }
+  }
+
+  parts.push(`  </div>
+</div>`);
+
+  return parts.join("\n");
 }
 
 // ── Main Generator ───────────────────────────────────────────────────────
@@ -309,6 +407,17 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     parts.push(renderCivicActionHTML(state.civicActionIntro, state.civicActions));
   }
 
+  // Public Meetings & Comment Periods
+  const selectedMeetings = (state.publicMeetings || []).filter((m) => m.selected);
+  const selectedCommentPeriods = (state.commentPeriods || []).filter((c) => c.selected);
+  if (selectedMeetings.length > 0 || selectedCommentPeriods.length > 0) {
+    parts.push(renderPublicMeetingsHTML(
+      state.publicMeetingsIntro || "",
+      selectedMeetings,
+      selectedCommentPeriods
+    ));
+  }
+
   // Curated News / What We're Reading
   if (selectedStories.length > 0) {
     parts.push(`
@@ -351,7 +460,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
         const isFeatured = j.featured;
         const badges = `${isFeatured ? featuredBadge : ""}${tierBadge(j.partnerTier)}`;
         const titleText = j.url
-          ? `<a href="${j.url}" style="color:#1e293b;text-decoration:none;">${j.title}</a>`
+          ? `<a href="${j.url}" style="color:#2982C4;text-decoration:none;">${j.title}</a>`
           : j.title;
         const line = j.organization
           ? `${titleText} <span style="color:#94a3b8;">|</span> ${j.organization}`
@@ -365,11 +474,19 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Events
   if (hasEventsHtml) {
+    // Post-process events HTML to ensure links are blue
+    const blueLinkedEventsHtml = state.eventsHtml.replace(
+      /<a\s+(?![^>]*style=)/gi,
+      '<a style="color:#2982C4;text-decoration:none;" '
+    ).replace(
+      /(<a\s+[^>]*style="[^"]*?)(?:color:[^;]*;?)/gi,
+      '$1color:#2982C4;'
+    );
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("Events")}
   <div style="font-size:14px;color:#333;line-height:1.6;">
-    ${state.eventsHtml}
+    ${blueLinkedEventsHtml}
   </div>
 </div>`);
   }
