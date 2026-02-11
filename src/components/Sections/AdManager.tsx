@@ -219,6 +219,7 @@ export default function AdManager() {
 
   // Share link
   const [linkCopied, setLinkCopied] = useState(false);
+  const [creatingShareLink, setCreatingShareLink] = useState(false);
 
   const headlineWords = countWords(headline);
   // Strip HTML tags before counting words (copy is now HTML from WYSIWYG)
@@ -226,35 +227,25 @@ export default function AdManager() {
   const copyWords = countWords(copyPlainText);
   const isValid = headline.trim() || copyPlainText.trim() || imageUrl.trim() || (ctaUrl.trim() && ctaUrl !== "#");
 
-  const getShareUrl = () => {
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    const params = new URLSearchParams({
-      h: headline,
-      c: copy,
-      u: ctaUrl || "#",
-      ct: ctaText,
-      s: colorScheme,
-      ...(imageUrl ? { img: imageUrl } : {}),
-      ...(showSecondCta && ctaUrl2 ? { u2: ctaUrl2, ct2: ctaText2 } : {}),
-    });
-    return `${base}/ad-preview?${params.toString()}`;
-  };
-
   const copyShareLink = async () => {
+    setCreatingShareLink(true);
     try {
-      await navigator.clipboard.writeText(getShareUrl());
+      const res = await fetch("/api/share-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ html: activeHtml }),
+      });
+      if (!res.ok) throw new Error("Failed to create share link");
+      const { id } = await res.json();
+      const base = typeof window !== "undefined" ? window.location.origin : "";
+      const shareUrl = `${base}/ad-preview?id=${id}`;
+      await navigator.clipboard.writeText(shareUrl);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Fallback
-      const input = document.createElement("input");
-      input.value = getShareUrl();
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 2000);
+      // Silent fail
+    } finally {
+      setCreatingShareLink(false);
     }
   };
 
@@ -583,13 +574,14 @@ export default function AdManager() {
             <h4 className="text-sm font-medium text-foreground">Preview</h4>
             <button
               onClick={copyShareLink}
-              className="text-xs px-3 py-1 rounded-lg border transition-colors cursor-pointer"
+              disabled={creatingShareLink}
+              className="text-xs px-3 py-1 rounded-lg border transition-colors cursor-pointer disabled:opacity-50"
               style={linkCopied
                 ? { borderColor: "var(--pd-success)", color: "var(--pd-success)", background: "#f0fdf4" }
                 : { borderColor: "var(--pd-border)", color: "var(--pd-blue)" }
               }
             >
-              {linkCopied ? "Link copied!" : "Copy share link"}
+              {creatingShareLink ? "Creating link…" : linkCopied ? "Link copied! (7 days)" : "Copy share link"}
             </button>
           </div>
           <div

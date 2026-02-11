@@ -1,59 +1,40 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-
-type ColorScheme = "blue" | "warm";
-
-const COLOR_SCHEMES: Record<ColorScheme, { accent: string; buttonBg: string; buttonText: string; headingColor: string; tagBg: string; tagText: string; borderColor: string }> = {
-  blue: {
-    accent: "#2982C4",
-    buttonBg: "#2982C4",
-    buttonText: "#ffffff",
-    headingColor: "#1e293b",
-    tagBg: "#e8f4fc",
-    tagText: "#2982C4",
-    borderColor: "#2982C4",
-  },
-  warm: {
-    accent: "#ea5a39",
-    buttonBg: "#ea5a39",
-    buttonText: "#ffffff",
-    headingColor: "#1e293b",
-    tagBg: "#fef3f0",
-    tagText: "#ea5a39",
-    borderColor: "#ea5a39",
-  },
-};
-
-function generateAdHtml(headline: string, copy: string, ctaUrl: string, scheme: ColorScheme): string {
-  const c = COLOR_SCHEMES[scheme];
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-  <tr>
-    <td style="padding:0;">
-      <div style="border:2px solid ${c.borderColor};border-radius:8px;overflow:hidden;background:#ffffff;">
-        <div style="padding:20px 24px 16px;">
-          <div style="display:inline-block;background:${c.tagBg};color:${c.tagText};font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;padding:3px 8px;border-radius:3px;margin-bottom:12px;">Sponsored</div>
-          <div style="font-size:18px;font-weight:bold;color:${c.headingColor};line-height:1.3;margin-bottom:10px;">${headline}</div>
-          <div style="font-size:14px;color:#4a5568;line-height:1.6;margin-bottom:16px;">${copy}</div>
-          <a href="${ctaUrl}" style="display:inline-block;background:${c.buttonBg};color:${c.buttonText};font-size:14px;font-weight:bold;text-decoration:none;padding:10px 24px;border-radius:5px;">Learn more →</a>
-        </div>
-      </div>
-    </td>
-  </tr>
-</table>`;
-}
+import { Suspense, useState, useEffect } from "react";
 
 function AdPreviewContent() {
   const searchParams = useSearchParams();
   const [viewWidth, setViewWidth] = useState<"desktop" | "mobile">("desktop");
+  const [adHtml, setAdHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const headline = searchParams.get("h") || "";
-  const copy = searchParams.get("c") || "";
-  const ctaUrl = searchParams.get("u") || "#";
-  const scheme = (searchParams.get("s") as ColorScheme) || "blue";
+  const previewId = searchParams.get("id");
 
-  if (!headline && !copy) {
+  // Load from Redis if we have an id
+  useEffect(() => {
+    if (!previewId) return;
+    setLoading(true);
+    fetch(`/api/share-preview?id=${encodeURIComponent(previewId)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Preview not found or expired");
+        return res.json();
+      })
+      .then((data) => setAdHtml(data.html))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [previewId]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", fontFamily: "Arial, Helvetica, sans-serif" }}>
+        <p style={{ color: "#94a3b8", fontSize: "14px" }}>Loading preview...</p>
+      </div>
+    );
+  }
+
+  if (error || (!previewId && !adHtml)) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc", fontFamily: "Arial, Helvetica, sans-serif" }}>
         <div style={{ textAlign: "center", color: "#64748b" }}>
@@ -64,7 +45,8 @@ function AdPreviewContent() {
     );
   }
 
-  const adHtml = generateAdHtml(headline, copy, ctaUrl, scheme);
+  if (!adHtml) return null;
+
   const previewMaxWidth = viewWidth === "desktop" ? "600px" : "375px";
 
   return (
