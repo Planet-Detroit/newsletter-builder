@@ -12,12 +12,14 @@ export default function ProgressBar({ tab }: Props) {
     contentCompletedCount, contentTotalCount,
     settingsCompletedCount, settingsTotalCount,
     adsCompletedCount, adsTotalCount,
+    inDevCompletedCount, inDevTotalCount,
   } = useNewsletter();
 
   const counts: Record<TabGroup, { completed: number; total: number; label: string }> = {
     content: { completed: contentCompletedCount, total: contentTotalCount, label: "Content Progress" },
     settings: { completed: settingsCompletedCount, total: settingsTotalCount, label: "Settings" },
     ads: { completed: adsCompletedCount, total: adsTotalCount, label: "Ads" },
+    "in-development": { completed: inDevCompletedCount, total: inDevTotalCount, label: "In Development" },
   };
 
   const { completed, total, label } = counts[tab];

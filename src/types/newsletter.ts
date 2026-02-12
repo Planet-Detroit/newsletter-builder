@@ -1,6 +1,6 @@
 export type SectionStatus = "ready" | "needs_attention" | "empty" | "loading";
 
-export type TabGroup = "content" | "settings" | "ads";
+export type TabGroup = "content" | "settings" | "ads" | "in-development";
 
 export interface NewsletterSection {
   id: string;
@@ -305,14 +305,15 @@ export const DEFAULT_SPONSORS: SponsorsData = {
 
 export const DEFAULT_SECTIONS: NewsletterSection[] = [
   // Content tab — weekly workhorse sections
-  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 1, automationLevel: "semi", tab: "content" },
-  { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 2, automationLevel: "full", tab: "content" },
-  { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 3, automationLevel: "semi", tab: "content" },
-  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 4, automationLevel: "semi", tab: "content" },
-  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 5, automationLevel: "full", tab: "content" },
-  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 6, automationLevel: "semi", tab: "content" },
-  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 7, automationLevel: "semi", tab: "content" },
-  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 8, automationLevel: "manual", tab: "content" },
+  { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 1, automationLevel: "full", tab: "content" },
+  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 2, automationLevel: "full", tab: "content" },
+  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 3, automationLevel: "semi", tab: "content" },
+  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 4, automationLevel: "semi", tab: "content" },
+  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 5, automationLevel: "semi", tab: "content" },
+  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 6, automationLevel: "manual", tab: "content" },
+  // In Development tab — sections still being built out
+  { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 1, automationLevel: "semi", tab: "in-development" },
+  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 2, automationLevel: "semi", tab: "in-development" },
   // Ads tab — optional sponsored content
   { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads" },
   { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads" },

@@ -20,10 +20,12 @@ export default function Dashboard() {
   const contentSections = sectionsByTab("content");
   const settingsSections = sectionsByTab("settings");
   const adsSections = sectionsByTab("ads");
+  const inDevSections = sectionsByTab("in-development");
 
   const displayedSections =
     activeTab === "content" ? contentSections
     : activeTab === "ads" ? adsSections
+    : activeTab === "in-development" ? inDevSections
     : settingsSections;
 
   const formatDisplayDate = (dateStr: string) => {
@@ -36,6 +38,7 @@ export default function Dashboard() {
     { id: "content", label: "Content", count: contentSections.length },
     { id: "ads", label: "Ads", count: adsSections.length },
     { id: "settings", label: "Settings & Auto", count: settingsSections.length },
+    { id: "in-development", label: "In Development", count: inDevSections.length },
   ];
 
   return (

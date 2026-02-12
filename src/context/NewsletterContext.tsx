@@ -244,6 +244,8 @@ interface NewsletterContextType {
   settingsTotalCount: number;
   adsCompletedCount: number;
   adsTotalCount: number;
+  inDevCompletedCount: number;
+  inDevTotalCount: number;
   syncStatus: SyncStatus;
   currentUser: string;
   lastEditor: string;
@@ -471,12 +473,15 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
   const contentSections = state.sections.filter((s) => s.tab === "content");
   const settingsSections = state.sections.filter((s) => s.tab === "settings");
   const adsSections = state.sections.filter((s) => s.tab === "ads");
+  const inDevSections = state.sections.filter((s) => s.tab === "in-development");
   const contentCompletedCount = contentSections.filter((s) => s.status === "ready").length;
   const contentTotalCount = contentSections.length;
   const settingsCompletedCount = settingsSections.filter((s) => s.status === "ready").length;
   const settingsTotalCount = settingsSections.length;
   const adsCompletedCount = adsSections.filter((s) => s.status === "ready").length;
   const adsTotalCount = adsSections.length;
+  const inDevCompletedCount = inDevSections.filter((s) => s.status === "ready").length;
+  const inDevTotalCount = inDevSections.length;
 
   // Prevent hydration mismatch: don't render children until initial state is loaded
   if (!mounted) {
@@ -498,6 +503,8 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
         settingsTotalCount,
         adsCompletedCount,
         adsTotalCount,
+        inDevCompletedCount,
+        inDevTotalCount,
         syncStatus,
         currentUser,
         lastEditor,
