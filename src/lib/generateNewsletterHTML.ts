@@ -282,7 +282,7 @@ function generateFundraisingHTML(state: NewsletterState): string {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
 <div style="padding:24px 32px;">
-  <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear %FIRSTNAME%,</strong><br><br>${state.fundraisingLetter.replace(/\n/g, "<br>")}</div>
+  <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear %FIRSTNAME%,</strong><br><br>${state.fundraisingLetter.replace(/\n/g, "<br>").replace(/<(p|div)(\s[^>]*)?>/gi, '<$1$2 style="margin:0 0 0.4em;">')}</div>
   <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
     <tr>
       <td style="vertical-align:middle;padding-right:14px;">
