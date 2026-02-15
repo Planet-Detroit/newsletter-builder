@@ -12,6 +12,7 @@ export default function ProgressBar({ tab }: Props) {
     contentCompletedCount, contentTotalCount,
     settingsCompletedCount, settingsTotalCount,
     adsCompletedCount, adsTotalCount,
+    fundraisingCompletedCount, fundraisingTotalCount,
     inDevCompletedCount, inDevTotalCount,
   } = useNewsletter();
 
@@ -19,6 +20,7 @@ export default function ProgressBar({ tab }: Props) {
     content: { completed: contentCompletedCount, total: contentTotalCount, label: "Content Progress" },
     settings: { completed: settingsCompletedCount, total: settingsTotalCount, label: "Settings" },
     ads: { completed: adsCompletedCount, total: adsTotalCount, label: "Ads" },
+    fundraising: { completed: fundraisingCompletedCount, total: fundraisingTotalCount, label: "Fundraising" },
     "in-development": { completed: inDevCompletedCount, total: inDevTotalCount, label: "In Development" },
   };
 

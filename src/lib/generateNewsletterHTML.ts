@@ -246,9 +246,94 @@ function renderPublicMeetingsHTML(
   return parts.join("\n");
 }
 
+// ── Fundraising Email Generator ──────────────────────────────────────────
+
+function generateFundraisingHTML(state: NewsletterState): string {
+  const issueDate = formatIssueDate(state.issueDate);
+
+  const logoHTML = state.logoUrl
+    ? `<img src="${state.logoUrl}" alt="Planet Detroit" style="max-width:280px;height:auto;display:block;margin:0 auto 8px;" />`
+    : `<h1 style="color:#1e293b;font-size:28px;margin:0;letter-spacing:1px;">PLANET DETROIT</h1>`;
+
+  const parts: string[] = [];
+
+  // Document open
+  parts.push(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planet Detroit</title>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">${state.previewText ? `
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${state.previewText}</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>` : ""}
+<div style="max-width:600px;margin:0 auto;background:#ffffff;" role="article" aria-label="Planet Detroit">`);
+
+  // Header
+  parts.push(`
+<div style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:1px solid #e2e8f0;">
+  ${logoHTML}
+  ${issueDate ? `<p style="color:#1e293b;font-size:14px;font-weight:bold;margin:8px 0 0;">${issueDate}</p>` : ""}
+</div>`);
+
+  // Fundraising letter with personalized greeting + signoff
+  if (state.fundraisingLetter) {
+    const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
+    parts.push(`
+<div style="padding:24px 32px;">
+  <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear %FIRSTNAME%,</strong><br><br>${state.fundraisingLetter.replace(/\n/g, "<br>")}</div>
+  <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
+    <tr>
+      <td style="vertical-align:middle;padding-right:14px;">
+        <img src="${staff.photoUrl}" alt="${staff.name}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;" />
+      </td>
+      <td style="vertical-align:middle;">
+        <div style="font-size:14px;color:#64748b;font-style:italic;line-height:1.4;">With gratitude,</div>
+        <div style="font-size:15px;font-weight:bold;color:#1e293b;line-height:1.4;">${staff.name}</div>
+        <div style="font-size:13px;color:#64748b;line-height:1.4;">${staff.title}</div>
+      </td>
+    </tr>
+  </table>
+</div>`);
+  }
+
+  // Fundraising CTA
+  if (state.fundraisingCTA && state.fundraisingCTA.buttonUrl) {
+    const fCta = state.fundraisingCTA;
+    parts.push(`
+<div style="padding:16px 32px;">
+  <div style="background:#ffffff;padding:24px;text-align:center;border-radius:8px;">
+    <p style="color:#1e293b;font-size:16px;font-weight:bold;margin:0 0 12px;">${fCta.headline}</p>
+    <a href="${fCta.buttonUrl}" style="display:inline-block;background:#ea5a39;color:#ffffff;padding:12px 32px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:14px;">${fCta.buttonText}</a>
+  </div>
+</div>`);
+  }
+
+  // Minimal footer
+  parts.push(`
+<div style="background:#1e293b;padding:24px;text-align:center;">
+  <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:4px 0;"><a href="https://planetdetroit.org" style="color:#2982C4;">planetdetroit.org</a></p>
+  <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:8px 0 4px;">The Green Garage &middot; 4444 Second Avenue, Detroit, MI 48201</p>
+</div>`);
+
+  // Document close
+  parts.push(`
+</div>
+</body>
+</html>`);
+
+  return parts.join("\n");
+}
+
 // ── Main Generator ───────────────────────────────────────────────────────
 
 export function generateNewsletterHTML(state: NewsletterState): string {
+  // ── Fundraising mode: stripped-down email ───────────────────────────────
+  if (state.newsletterType === "fundraising") {
+    return generateFundraisingHTML(state);
+  }
+
   const selectedPosts = state.pdPosts.filter((p) => p.selected);
   const selectedStories = state.curatedStories.filter((s) => s.selected);
   const hasEventsHtml = state.eventsHtml && state.eventsHtml.replace(/<[^>]*>/g, "").trim().length > 0;

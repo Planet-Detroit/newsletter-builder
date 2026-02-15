@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useState, useRef } from "react";
 import {
   NewsletterState,
+  NewsletterType,
   SectionStatus,
   PhotoLayout,
   PDPost,
@@ -18,6 +19,7 @@ import {
   LakeLevelData,
   SponsorsData,
   SupportCTA,
+  FundraisingCTA,
   DEFAULT_SECTIONS,
   DEFAULT_SPONSORS,
 } from "@/types/newsletter";
@@ -29,7 +31,14 @@ const DEFAULT_SUPPORT_CTA: SupportCTA = {
   buttonUrl: "https://donorbox.org/be-a-planet-detroiter-780440",
 };
 
+const DEFAULT_FUNDRAISING_CTA: FundraisingCTA = {
+  headline: "Support Planet Detroit's journalism",
+  buttonText: "Make a tax-deductible gift",
+  buttonUrl: "https://donorbox.org/be-a-planet-detroiter-780440",
+};
+
 const initialState: NewsletterState = {
+  newsletterType: "regular",
   subjectLine: "",
   previewText: "",
   intro: "",
@@ -55,6 +64,8 @@ const initialState: NewsletterState = {
   publicMeetings: [],
   commentPeriods: [],
   publicMeetingsIntro: "",
+  fundraisingLetter: "",
+  fundraisingCTA: DEFAULT_FUNDRAISING_CTA,
   ads: [],
   co2: null,
   airQuality: null,
@@ -64,6 +75,7 @@ const initialState: NewsletterState = {
 };
 
 type Action =
+  | { type: "SET_NEWSLETTER_TYPE"; payload: NewsletterType }
   | { type: "SET_SUBJECT_LINE"; payload: string }
   | { type: "SET_PREVIEW_TEXT"; payload: string }
   | { type: "SET_INTRO"; payload: string }
@@ -95,6 +107,8 @@ type Action =
   | { type: "SET_PUBLIC_MEETINGS"; payload: PublicMeeting[] }
   | { type: "SET_COMMENT_PERIODS"; payload: CommentPeriod[] }
   | { type: "SET_PUBLIC_MEETINGS_INTRO"; payload: string }
+  | { type: "SET_FUNDRAISING_LETTER"; payload: string }
+  | { type: "SET_FUNDRAISING_CTA"; payload: FundraisingCTA }
   | { type: "SET_ADS"; payload: AdSlot[] }
   | { type: "SET_CO2"; payload: CO2Data | null }
   | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
@@ -105,6 +119,8 @@ type Action =
 
 function reducer(state: NewsletterState, action: Action): NewsletterState {
   switch (action.type) {
+    case "SET_NEWSLETTER_TYPE":
+      return { ...state, newsletterType: action.payload };
     case "SET_SUBJECT_LINE":
       return { ...state, subjectLine: action.payload };
     case "SET_PREVIEW_TEXT":
@@ -197,6 +213,10 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return { ...state, commentPeriods: action.payload };
     case "SET_PUBLIC_MEETINGS_INTRO":
       return { ...state, publicMeetingsIntro: action.payload };
+    case "SET_FUNDRAISING_LETTER":
+      return { ...state, fundraisingLetter: action.payload };
+    case "SET_FUNDRAISING_CTA":
+      return { ...state, fundraisingCTA: action.payload };
     case "SET_ADS":
       return { ...state, ads: action.payload };
     case "SET_CO2":
@@ -244,6 +264,8 @@ interface NewsletterContextType {
   settingsTotalCount: number;
   adsCompletedCount: number;
   adsTotalCount: number;
+  fundraisingCompletedCount: number;
+  fundraisingTotalCount: number;
   inDevCompletedCount: number;
   inDevTotalCount: number;
   syncStatus: SyncStatus;
@@ -281,6 +303,8 @@ function migrateState(parsed: Record<string, unknown>): NewsletterState {
     sections: mergedSections,
     sponsors: (parsed.sponsors as SponsorsData) || DEFAULT_SPONSORS,
     supportCTA: (parsed.supportCTA as SupportCTA) || DEFAULT_SUPPORT_CTA,
+    newsletterType: (parsed.newsletterType as NewsletterType) || "regular",
+    fundraisingCTA: (parsed.fundraisingCTA as FundraisingCTA) || DEFAULT_FUNDRAISING_CTA,
     issueDate:
       (parsed.issueDate as string) || new Date().toISOString().slice(0, 10),
     logoUrl:
@@ -474,12 +498,15 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
   const settingsSections = state.sections.filter((s) => s.tab === "settings");
   const adsSections = state.sections.filter((s) => s.tab === "ads");
   const inDevSections = state.sections.filter((s) => s.tab === "in-development");
+  const fundraisingSections = state.sections.filter((s) => s.tab === "fundraising");
   const contentCompletedCount = contentSections.filter((s) => s.status === "ready").length;
   const contentTotalCount = contentSections.length;
   const settingsCompletedCount = settingsSections.filter((s) => s.status === "ready").length;
   const settingsTotalCount = settingsSections.length;
   const adsCompletedCount = adsSections.filter((s) => s.status === "ready").length;
   const adsTotalCount = adsSections.length;
+  const fundraisingCompletedCount = fundraisingSections.filter((s) => s.status === "ready").length;
+  const fundraisingTotalCount = fundraisingSections.length;
   const inDevCompletedCount = inDevSections.filter((s) => s.status === "ready").length;
   const inDevTotalCount = inDevSections.length;
 
@@ -503,6 +530,8 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
         settingsTotalCount,
         adsCompletedCount,
         adsTotalCount,
+        fundraisingCompletedCount,
+        fundraisingTotalCount,
         inDevCompletedCount,
         inDevTotalCount,
         syncStatus,

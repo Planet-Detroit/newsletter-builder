@@ -1,18 +1,28 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useNewsletter } from "@/context/NewsletterContext";
 import { generateNewsletterHTML } from "@/lib/generateNewsletterHTML";
+import type { NewsletterType } from "@/types/newsletter";
 
 
 export default function PreviewPage() {
   const { state } = useNewsletter();
+  const searchParams = useSearchParams();
   const [view, setView] = useState<"desktop" | "mobile">("desktop");
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const html = generateNewsletterHTML(state);
+  // URL param overrides persisted state — avoids race condition with Redis save
+  const typeParam = searchParams.get("type") as NewsletterType | null;
+  const effectiveState = typeParam && typeParam !== state.newsletterType
+    ? { ...state, newsletterType: typeParam }
+    : state;
+
+  const isFundraising = effectiveState.newsletterType === "fundraising";
+  const html = generateNewsletterHTML(effectiveState);
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(html);
@@ -46,7 +56,8 @@ export default function PreviewPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `planet-detroit-newsletter-${state.issueDate || new Date().toISOString().slice(0, 10)}.html`;
+    const prefix = isFundraising ? "planet-detroit-fundraising" : "planet-detroit-newsletter";
+    a.download = `${prefix}-${state.issueDate || new Date().toISOString().slice(0, 10)}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -60,7 +71,7 @@ export default function PreviewPage() {
             <a href="/" className="text-pd-blue text-sm hover:underline">
               &larr; Back to Dashboard
             </a>
-            <h1 className="text-lg font-bold">Newsletter Preview</h1>
+            <h1 className="text-lg font-bold">{isFundraising ? "Fundraising Email Preview" : "Newsletter Preview"}</h1>
           </div>
           <div className="flex items-center gap-3">
             {/* View toggle */}

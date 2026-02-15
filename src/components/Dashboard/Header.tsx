@@ -57,9 +57,14 @@ export default function Header() {
     setShowResetConfirm(false);
   };
 
+  const isFundraising = state.newsletterType === "fundraising";
+
   const handleGenerate = async () => {
     if (!state.subjectLine) {
-      setGenResult({ success: false, message: "Set a subject line first (Editor's Letter section)." });
+      setGenResult({ success: false, message: isFundraising
+        ? "Set a subject line first (Fundraising Letter section)."
+        : "Set a subject line first (Editor's Letter section)."
+      });
       return;
     }
 
@@ -81,6 +86,7 @@ export default function Header() {
           issueDate: state.issueDate,
           senderName: sender?.name || "Planet Detroit",
           senderEmail: sender?.email || "newsletter@planetdetroit.org",
+          newsletterType: state.newsletterType,
         }),
       });
 
@@ -148,7 +154,7 @@ export default function Header() {
               </div>
             )}
             <a
-              href="/preview"
+              href={isFundraising ? "/preview?type=fundraising" : "/preview"}
               className="px-4 py-2 text-sm font-medium text-pd-blue border border-pd-blue rounded-lg hover:bg-pd-blue-light transition-colors"
             >
               Preview
@@ -159,7 +165,7 @@ export default function Header() {
               className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-60"
               style={{ background: generating ? "var(--pd-muted)" : "var(--pd-blue)" }}
             >
-              {generating ? "Pushing to AC..." : "Generate Newsletter"}
+              {generating ? "Pushing to AC..." : isFundraising ? "Generate Fundraising Email" : "Generate Newsletter"}
             </button>
           </div>
         </div>

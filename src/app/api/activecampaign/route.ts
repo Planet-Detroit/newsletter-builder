@@ -6,6 +6,7 @@ interface RequestBody {
   issueDate: string;
   senderName?: string;
   senderEmail?: string;
+  newsletterType?: string;
 }
 
 const AC_API_URL = process.env.ACTIVECAMPAIGN_API_URL; // e.g. https://planetdetroit.api-us1.com
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[ActiveCampaign] Received POST request');
 
     const body: RequestBody = await request.json();
-    const { html, subjectLine, issueDate, senderName, senderEmail } = body;
+    const { html, subjectLine, issueDate, senderName, senderEmail, newsletterType } = body;
 
     if (!html || !subjectLine || !issueDate) {
       return NextResponse.json(
@@ -123,11 +124,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log(`[ActiveCampaign] Message created with ID: ${messageId}`);
 
     // Step 3: Create campaign via v1 API (campaign_create)
-    const campaignName = `Planet Detroit Newsletter - ${new Date(issueDate + 'T12:00:00').toLocaleDateString('en-US', {
+    const formattedDate = new Date(issueDate + 'T12:00:00').toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    })}`;
+    });
+    const campaignName = newsletterType === 'fundraising'
+      ? `Fundraiser: Planet Detroit - ${formattedDate}`
+      : `Planet Detroit Newsletter - ${formattedDate}`;
 
     // Format date for AC v1: YYYY-MM-DD HH:MM:SS
     const sdate = `${issueDate} 08:00:00`;

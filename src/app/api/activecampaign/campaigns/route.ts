@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/activecampaign/campaigns
  * Lists recent sent campaigns from ActiveCampaign (v3 API).
- * Only returns campaigns sent within the last 30 days.
+ *
+ * Query params:
+ *   ?type=fundraising  — only return campaigns whose name starts with "Fundraiser:"
+ *   ?days=180          — look back N days instead of the default 30
  */
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const apiUrl = process.env.ACTIVECAMPAIGN_API_URL;
   const apiKey = process.env.ACTIVECAMPAIGN_API_KEY;
 
@@ -18,8 +21,15 @@ export async function GET() {
   }
 
   try {
-    // Fetch most recent 50 campaigns, sorted by send date
-    const res = await fetch(`${apiUrl}/api/3/campaigns?limit=50&orders[sdate]=DESC`, {
+    const { searchParams } = request.nextUrl;
+    const typeFilter = searchParams.get("type"); // e.g. "fundraising"
+    const daysParam = parseInt(searchParams.get("days") || "30", 10);
+    const lookbackDays = Math.min(Math.max(daysParam, 1), 365);
+
+    // Fetch more campaigns when looking back further
+    const limit = lookbackDays > 30 ? 100 : 50;
+
+    const res = await fetch(`${apiUrl}/api/3/campaigns?limit=${limit}&orders[sdate]=DESC`, {
       headers: { "Api-Token": apiKey },
       signal: AbortSignal.timeout(10000),
     });
@@ -30,11 +40,9 @@ export async function GET() {
 
     const data = await res.json();
 
-    // 30 days ago cutoff
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
+    cutoff.setDate(cutoff.getDate() - lookbackDays);
 
-    // Return only sent campaigns from the last 30 days
     const campaigns = (data.campaigns || [])
       .map((c: Record<string, string>) => ({
         id: c.id,
@@ -47,15 +55,15 @@ export async function GET() {
         clicks: parseInt(c.linkclicks || "0", 10),
         uniqueClicks: parseInt(c.uniquelinkclicks || "0", 10),
         unsubscribes: parseInt(c.unsubscribes || "0", 10),
-        // Keep 'opens' as alias for uniqueOpens for backward compat
         opens: parseInt(c.uniqueopens || "0", 10),
       }))
-      .filter((c: { status: string; sendDate: string | null }) => {
-        // Only sent campaigns
+      .filter((c: { status: string; sendDate: string | null; name: string }) => {
         if (c.status !== "sent") return false;
-        // Only from the last 30 days
         if (!c.sendDate) return false;
-        return new Date(c.sendDate) >= cutoff;
+        if (new Date(c.sendDate) < cutoff) return false;
+        // Filter by type if requested
+        if (typeFilter === "fundraising" && !c.name.startsWith("Fundraiser:")) return false;
+        return true;
       });
 
     return NextResponse.json({ campaigns });

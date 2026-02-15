@@ -16,6 +16,9 @@ import FeaturedPromoEditor from "./FeaturedPromoEditor";
 import SupportCtaEditor from "./SupportCtaEditor";
 import CivicActionEditor from "./CivicActionEditor";
 import PublicMeetingsEditor from "./PublicMeetingsEditor";
+import FundraisingLetterEditor from "./FundraisingLetterEditor";
+import FundraisingCtaEditor from "./FundraisingCtaEditor";
+import FundraisingTracker from "./FundraisingTracker";
 import StaticSection from "./StaticSection";
 
 interface SectionEditorProps {
@@ -56,6 +59,12 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <FeaturedPromoEditor />;
       case "support":
         return <SupportCtaEditor />;
+      case "fundraising-letter":
+        return <FundraisingLetterEditor />;
+      case "fundraising-cta":
+        return <FundraisingCtaEditor />;
+      case "fundraising-tracker":
+        return <FundraisingTracker />;
       case "footer":
         return <StaticSection title={section.title} description="The footer includes social links, your address, slogan, and unsubscribe link. Edit address/slogan in src/lib/generateNewsletterHTML.ts." />;
       default:

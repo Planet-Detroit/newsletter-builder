@@ -1,6 +1,8 @@
 export type SectionStatus = "ready" | "needs_attention" | "empty" | "loading";
 
-export type TabGroup = "content" | "settings" | "ads" | "in-development";
+export type NewsletterType = "regular" | "fundraising";
+
+export type TabGroup = "content" | "settings" | "ads" | "fundraising" | "in-development";
 
 export interface NewsletterSection {
   id: string;
@@ -215,7 +217,14 @@ export interface SupportCTA {
   buttonUrl: string;
 }
 
+export interface FundraisingCTA {
+  headline: string;
+  buttonText: string;
+  buttonUrl: string;
+}
+
 export interface NewsletterState {
+  newsletterType: NewsletterType;
   subjectLine: string;
   previewText: string;
   intro: string;
@@ -247,6 +256,8 @@ export interface NewsletterState {
   publicMeetings: PublicMeeting[];
   commentPeriods: CommentPeriod[];
   publicMeetingsIntro: string;
+  fundraisingLetter: string;
+  fundraisingCTA: FundraisingCTA;
   ads: AdSlot[];
   co2: CO2Data | null;
   airQuality: AirQualityData | null;
@@ -314,6 +325,10 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   // In Development tab — sections still being built out
   { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 1, automationLevel: "semi", tab: "in-development" },
   { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 2, automationLevel: "semi", tab: "in-development" },
+  // Fundraising tab — fundraising appeal content
+  { id: "fundraising-letter", title: "Editor's Letter", description: "Fundraising appeal letter", status: "empty", icon: "💌", order: 1, automationLevel: "manual", tab: "fundraising" },
+  { id: "fundraising-cta", title: "Donate CTA", description: "Call-to-action button linking to Donorbox", status: "empty", icon: "💚", order: 2, automationLevel: "manual", tab: "fundraising" },
+  { id: "fundraising-tracker", title: "Fundraiser Performance", description: "Campaign metrics for fundraising emails", status: "ready", icon: "📊", order: 3, automationLevel: "full", tab: "fundraising" },
   // Ads tab — optional sponsored content
   { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads" },
   { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads" },
