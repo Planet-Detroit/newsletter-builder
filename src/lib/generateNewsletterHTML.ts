@@ -58,32 +58,63 @@ const SOCIAL_ICONS = {
 
 // ── Story Layout Renderer ────────────────────────────────────────────────
 
-function renderStoryHTML(post: PDPost): string {
+function renderShareLinks(url: string, title: string): string {
+  const encodedUrl = encodeURIComponent(url);
+  const encodedTitle = encodeURIComponent(title);
+  const bskyText = encodeURIComponent(`${title} @planetdetroit.bsky.social ${url}`);
+  const xText = encodeURIComponent(`${title} via @PlanetDetroit`);
+  const redditTitle = encodeURIComponent(`${title} | Planet Detroit`);
+  const nextdoorBody = encodeURIComponent(`${title} via Planet Detroit ${url}`);
+  const emailSubject = encodeURIComponent(title);
+  const emailBody = encodeURIComponent(`Check out this story from Planet Detroit:\n\n${title}\n${url}`);
+  const linkStyle = "color:#94a3b8;text-decoration:none;";
+  const sepStyle = "color:#cbd5e1;";
+  return `<div style="margin-top:6px;font-size:11px;">
+    <span style="color:#94a3b8;">Share:</span>
+    <a href="https://bsky.app/intent/compose?text=${bskyText}" style="${linkStyle}" title="Share on Bluesky">Bluesky</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${xText}" style="${linkStyle}" title="Share on X">X</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedTitle}%20via%20%40planetdetroitnews" style="${linkStyle}" title="Share on Facebook">FB</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}" style="${linkStyle}" title="Share on LinkedIn">LinkedIn</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://www.reddit.com/submit?url=${encodedUrl}&title=${redditTitle}" style="${linkStyle}" title="Share on Reddit">Reddit</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://nextdoor.com/sharekit/?source=planet_detroit&body=${nextdoorBody}" style="${linkStyle}" title="Share on Nextdoor">Nextdoor</a>
+    <span style="${sepStyle}"> | </span>
+    <a href="https://mail.google.com/mail/?view=cm&su=${emailSubject}&body=${emailBody}" style="${linkStyle}" title="Email to a friend">Email</a>
+  </div>`;
+}
+
+function renderStoryHTML(post: PDPost, { shareLinks = false, subtitleOnly = false } = {}): string {
   const layout = post.photoLayout || "small-left";
-  const blurb = post.subtitle || post.excerpt;
+  const blurb = subtitleOnly ? (post.subtitle || "") : (post.subtitle || post.excerpt);
   const img = post.featuredImage;
+  const share = shareLinks ? renderShareLinks(post.url, post.title) : "";
+  const blurbHtml = blurb ? `\n  <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${blurb}</p>` : "";
 
   if (layout === "top" && img) {
     return `<div style="margin-bottom:24px;">
   <a href="${post.url}" style="text-decoration:none;"><img src="${img}" alt="" style="width:100%;height:auto;border-radius:6px;display:block;margin-bottom:10px;" /></a>
-  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>
-  <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${blurb}</p>
+  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>${blurbHtml}
+  ${share}
 </div>`;
   }
 
   if (layout === "small-left" && img) {
     return `<div style="margin-bottom:20px;overflow:hidden;">
   <a href="${post.url}" style="text-decoration:none;float:left;margin-right:14px;margin-bottom:4px;"><img src="${img}" alt="" style="width:120px;height:80px;object-fit:cover;border-radius:4px;display:block;" /></a>
-  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>
-  <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${blurb}</p>
+  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>${blurbHtml}
+  ${share}
   <div style="clear:both;"></div>
 </div>`;
   }
 
   // "none" or no image
   return `<div style="margin-bottom:20px;">
-  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>
-  <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${blurb}</p>
+  <h3 style="font-size:16px;margin:0 0 4px;"><a href="${post.url}" style="color:#2982C4;text-decoration:none;">${post.title}</a></h3>${blurbHtml}
+  ${share}
 </div>`;
 }
 
@@ -480,7 +511,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("Reporting from Planet Detroit")}
-  ${selectedPosts.map((post) => renderStoryHTML(post)).join("")}
+  ${selectedPosts.map((post) => renderStoryHTML(post, { shareLinks: true })).join("")}
 </div>`);
   }
 
@@ -497,7 +528,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
       <span style="background:#fbbf24;color:#1e293b;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;padding:4px 16px;border-radius:999px;">SPONSORED</span>${state.sponsoredByName ? `
       <div style="font-size:13px;color:#92400e;margin-top:6px;">by ${state.sponsoredByName}</div>` : ""}
     </div>
-    ${selectedSponsored.map((post) => renderStoryHTML(post)).join("")}
+    ${selectedSponsored.map((post) => renderStoryHTML(post, { subtitleOnly: true })).join("")}
   </div>
 </div>`);
   }

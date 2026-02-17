@@ -7,6 +7,7 @@ interface RequestBody {
   senderName?: string;
   senderEmail?: string;
   newsletterType?: string;
+  previewText?: string;
 }
 
 const AC_API_URL = process.env.ACTIVECAMPAIGN_API_URL; // e.g. https://planetdetroit.api-us1.com
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log('[ActiveCampaign] Received POST request');
 
     const body: RequestBody = await request.json();
-    const { html, subjectLine, issueDate, senderName, senderEmail, newsletterType } = body;
+    const { html, subjectLine, issueDate, senderName, senderEmail, newsletterType, previewText } = body;
 
     if (!html || !subjectLine || !issueDate) {
       return NextResponse.json(
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       charset: 'utf-8',
       encoding: 'quoted-printable',
       html: html,
+      ...(previewText ? { preheader_text: previewText } : {}),
     };
 
     // Assign message to all lists: p[listId]=listId

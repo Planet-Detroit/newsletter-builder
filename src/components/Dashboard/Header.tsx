@@ -87,6 +87,7 @@ export default function Header() {
           senderName: sender?.name || "Planet Detroit",
           senderEmail: sender?.email || "newsletter@planetdetroit.org",
           newsletterType: state.newsletterType,
+          previewText: state.previewText,
         }),
       });
 

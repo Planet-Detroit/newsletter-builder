@@ -377,6 +377,19 @@ export default function AdManager() {
       </div>
 
       <div className="space-y-3">
+        {/* Ad Name */}
+        <div>
+          <label className="text-sm font-medium text-foreground mb-1 block">Ad Name</label>
+          <input
+            type="text"
+            value={adName}
+            onChange={(e) => setAdName(e.target.value)}
+            placeholder="e.g., Revival Research — Feb 2026"
+            className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue focus:ring-1 focus:ring-pd-blue"
+          />
+          <p className="text-xs text-pd-muted mt-1">Used to identify this ad in the newsletter and library</p>
+        </div>
+
         {/* Ad Image */}
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -623,13 +636,6 @@ export default function AdManager() {
       {isValid && (
         <div className="p-4 border border-pd-border rounded-lg space-y-3 bg-slate-50">
           <h4 className="text-sm font-medium text-foreground">Add to Newsletter</h4>
-          <input
-            type="text"
-            value={adName}
-            onChange={(e) => setAdName(e.target.value)}
-            placeholder="Ad name (e.g., Revival Research — Feb 2026)"
-            className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue bg-white"
-          />
           <div>
             <textarea
               value={editorNote}
