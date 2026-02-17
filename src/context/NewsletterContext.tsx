@@ -53,6 +53,8 @@ const initialState: NewsletterState = {
   sponsors: DEFAULT_SPONSORS,
   supportCTA: DEFAULT_SUPPORT_CTA,
   pdPosts: [],
+  sponsoredPosts: [],
+  sponsoredByName: "",
   curatedStories: [],
   events: [],
   eventsHtml: "",
@@ -93,6 +95,10 @@ type Action =
   | { type: "REORDER_PD_POSTS"; payload: { fromIndex: number; toIndex: number } }
   | { type: "SET_POST_PHOTO_LAYOUT"; payload: { id: number; layout: PhotoLayout } }
   | { type: "SET_STORY_PHOTO_LAYOUT"; payload: PhotoLayout }
+  | { type: "SET_SPONSORED_POSTS"; payload: PDPost[] }
+  | { type: "TOGGLE_SPONSORED_POST"; payload: number }
+  | { type: "SET_SPONSORED_POST_PHOTO_LAYOUT"; payload: { id: number; layout: PhotoLayout } }
+  | { type: "SET_SPONSORED_BY_NAME"; payload: string }
   | { type: "SET_CURATED_STORIES"; payload: CuratedStory[] }
   | { type: "UPDATE_CURATED_STORY"; payload: { id: string; story: Partial<CuratedStory> } }
   | { type: "REORDER_CURATED_STORIES"; payload: { fromIndex: number; toIndex: number } }
@@ -173,6 +179,24 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
         storyPhotoLayout: action.payload,
         pdPosts: state.pdPosts.map((p) => ({ ...p, photoLayout: action.payload })),
       };
+    case "SET_SPONSORED_POSTS":
+      return { ...state, sponsoredPosts: action.payload };
+    case "TOGGLE_SPONSORED_POST":
+      return {
+        ...state,
+        sponsoredPosts: state.sponsoredPosts.map((p) =>
+          p.id === action.payload ? { ...p, selected: !p.selected } : p
+        ),
+      };
+    case "SET_SPONSORED_POST_PHOTO_LAYOUT":
+      return {
+        ...state,
+        sponsoredPosts: state.sponsoredPosts.map((p) =>
+          p.id === action.payload.id ? { ...p, photoLayout: action.payload.layout } : p
+        ),
+      };
+    case "SET_SPONSORED_BY_NAME":
+      return { ...state, sponsoredByName: action.payload };
     case "SET_CURATED_STORIES":
       return { ...state, curatedStories: action.payload };
     case "UPDATE_CURATED_STORY":

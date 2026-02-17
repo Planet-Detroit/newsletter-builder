@@ -61,27 +61,29 @@ export async function GET() {
   try {
     const wpUrl = process.env.WORDPRESS_URL || "https://planetdetroit.org";
 
-    // Fetch posts from last 14 days
-    const since = new Date();
-    since.setDate(since.getDate() - 14);
-    const afterDate = since.toISOString();
+    // First, look up the "sponsored" category ID (slug is "sponsor-stories" in WP)
+    const catRes = await fetch(
+      `${wpUrl}/wp-json/wp/v2/categories?slug=sponsor-stories`,
+      { headers: getAuthHeaders(), next: { revalidate: 3600 } }
+    );
 
-    // Look up the "sponsor-stories" category to exclude from regular posts
-    let excludeCat = "";
-    try {
-      const catRes = await fetch(
-        `${wpUrl}/wp-json/wp/v2/categories?slug=sponsor-stories`,
-        { headers: getAuthHeaders(), next: { revalidate: 3600 } }
-      );
-      if (catRes.ok) {
-        const cats = await catRes.json();
-        if (cats.length) excludeCat = `&categories_exclude=${cats[0].id}`;
-      }
-    } catch {
-      // If category lookup fails, proceed without exclusion
+    if (!catRes.ok) {
+      throw new Error(`Failed to look up sponsored category: ${catRes.status}`);
     }
 
-    const url = `${wpUrl}/wp-json/wp/v2/posts?after=${afterDate}&per_page=20&orderby=date&order=desc&_embed=wp:featuredmedia${excludeCat}`;
+    const categories = await catRes.json();
+    if (!categories.length) {
+      return NextResponse.json({ posts: [] });
+    }
+
+    const categoryId = categories[0].id;
+
+    // Fetch sponsored posts from the last 90 days
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+    const afterDate = since.toISOString();
+
+    const url = `${wpUrl}/wp-json/wp/v2/posts?categories=${categoryId}&after=${afterDate}&per_page=10&orderby=date&order=desc&_embed=wp:featuredmedia`;
 
     const response = await fetch(url, {
       headers: getAuthHeaders(),
@@ -98,7 +100,6 @@ export async function GET() {
       const cleanTitle = decodeEntities(post.title.rendered);
       const cleanExcerpt = decodeEntities(post.excerpt.rendered);
 
-      // Newspack subtitle: check meta.newspack_post_subtitle, then top-level, then fall back to excerpt
       const subtitle =
         post.meta?.newspack_post_subtitle ||
         post.newspack_post_subtitle ||
@@ -106,7 +107,6 @@ export async function GET() {
 
       const cleanSubtitle = subtitle ? decodeEntities(subtitle) : "";
 
-      // Get featured image — grab multiple sizes for layout options
       const media = post._embedded?.["wp:featuredmedia"]?.[0];
       const featuredImage = media?.source_url || null;
       const sizes = media?.media_details?.sizes;
@@ -128,7 +128,7 @@ export async function GET() {
 
     return NextResponse.json({ posts: formatted });
   } catch (error) {
-    console.error("WordPress API error:", error);
+    console.error("WordPress sponsored posts API error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -282,7 +282,7 @@ function generateFundraisingHTML(state: NewsletterState): string {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
 <div style="padding:24px 32px;">
-  <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear %FIRSTNAME%,</strong><br><br>${state.fundraisingLetter.replace(/\n/g, "<br>").replace(/<(p|div)(\s[^>]*)?>/gi, '<$1$2 style="margin:0 0 0.4em;">')}</div>
+  <div style="font-size:16px;line-height:1.6;color:#333;"><strong>Dear %FIRSTNAME%,</strong><br><br>${state.fundraisingLetter.replace(/\n/g, "").replace(/<div><br><\/div>/gi, '<div style="margin:0;line-height:0.8;"><br></div>').replace(/<(p|div)(\s[^>]*)?>/gi, '<$1$2 style="margin:0 0 0.2em;">')}</div>
   <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
     <tr>
       <td style="vertical-align:middle;padding-right:14px;">
@@ -486,6 +486,21 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Ad slot: after-pd-stories
   parts.push(renderAdsForPosition(state.ads, "after-pd-stories"));
+
+  // Sponsored Content
+  const selectedSponsored = (state.sponsoredPosts || []).filter((p) => p.selected);
+  if (selectedSponsored.length > 0) {
+    parts.push(`
+<div style="padding:16px 32px;">
+  <div style="background:#fffbeb;border-radius:8px;padding:20px 24px;">
+    <div style="text-align:center;margin-bottom:14px;">
+      <span style="background:#fbbf24;color:#1e293b;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;padding:4px 16px;border-radius:999px;">SPONSORED</span>${state.sponsoredByName ? `
+      <div style="font-size:13px;color:#92400e;margin-top:6px;">by ${state.sponsoredByName}</div>` : ""}
+    </div>
+    ${selectedSponsored.map((post) => renderStoryHTML(post)).join("")}
+  </div>
+</div>`);
+  }
 
   // Civic Action — Take Action section
   if (state.civicActionIntro && state.civicActions.length > 0) {

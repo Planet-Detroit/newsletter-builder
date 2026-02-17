@@ -3,6 +3,7 @@
 import { NewsletterSection } from "@/types/newsletter";
 import IntroEditor from "./IntroEditor";
 import PDStoriesSelector from "./PDStoriesSelector";
+import SponsoredContentSelector from "./SponsoredContentSelector";
 import CuratedNewsImport from "./CuratedNewsImport";
 import EventsSelector from "./EventsSelector";
 import JobsSelector from "./JobsSelector";
@@ -33,6 +34,8 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <IntroEditor />;
       case "pd-stories":
         return <PDStoriesSelector />;
+      case "sponsored-content":
+        return <SponsoredContentSelector />;
       case "civic-action":
         return <CivicActionEditor />;
       case "public-meetings":
