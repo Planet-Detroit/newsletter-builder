@@ -12,7 +12,7 @@ export default function ToolNav() {
         PD Tools
       </span>
       <a
-        href="https://news-brief-generator.vercel.app/"
+        href="https://brief.tools.planetdetroit.org/"
         style={{ fontSize: "12px", color: "#94a3b8", textDecoration: "none", padding: "4px 10px", borderRadius: "4px", transition: "color 0.15s" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
@@ -27,7 +27,7 @@ export default function ToolNav() {
       </span>
       <span style={{ color: "#475569", fontSize: "10px" }}>/</span>
       <a
-        href="https://civic-action-builder.vercel.app/"
+        href="https://civic.tools.planetdetroit.org/"
         style={{ fontSize: "12px", color: "#94a3b8", textDecoration: "none", padding: "4px 10px", borderRadius: "4px", transition: "color 0.15s" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "#ffffff")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "#94a3b8")}
