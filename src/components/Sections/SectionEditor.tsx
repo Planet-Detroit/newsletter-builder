@@ -14,6 +14,7 @@ import PSCtaEditor from "./PSCtaEditor";
 import SponsorsEditor from "./SponsorsEditor";
 import HeaderEditor from "./HeaderEditor";
 import FeaturedPromoEditor from "./FeaturedPromoEditor";
+import PartnerPromoEditor from "./PartnerPromoEditor";
 import SupportCtaEditor from "./SupportCtaEditor";
 import CivicActionEditor from "./CivicActionEditor";
 import PublicMeetingsEditor from "./PublicMeetingsEditor";
@@ -60,6 +61,8 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <HeaderEditor />;
       case "featured":
         return <FeaturedPromoEditor />;
+      case "partner-promo":
+        return <PartnerPromoEditor />;
       case "support":
         return <SupportCtaEditor />;
       case "fundraising-letter":

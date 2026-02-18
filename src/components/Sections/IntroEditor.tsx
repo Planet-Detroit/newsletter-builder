@@ -75,6 +75,7 @@ export default function IntroEditor() {
         body: JSON.stringify({
           pdPosts: state.pdPosts,
           curatedStories: state.curatedStories,
+          curatedNewsHtml: state.curatedNewsHtml,
           events: state.events,
         }),
       });

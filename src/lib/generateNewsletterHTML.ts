@@ -366,7 +366,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   const selectedPosts = state.pdPosts.filter((p) => p.selected);
-  const selectedStories = state.curatedStories.filter((s) => s.selected);
+  const hasCuratedNews = state.curatedNewsHtml && state.curatedNewsHtml.replace(/<[^>]*>/g, "").trim().length > 0;
   const hasEventsHtml = state.eventsHtml && state.eventsHtml.replace(/<[^>]*>/g, "").trim().length > 0;
   const selectedJobs = state.jobs.filter((j) => j.selected);
   const issueDate = formatIssueDate(state.issueDate);
@@ -550,22 +550,13 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Curated News / What We're Reading
-  if (selectedStories.length > 0) {
+  if (hasCuratedNews) {
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("What We're Reading")}
-  ${selectedStories
-    .map(
-      (s) => `<div style="margin-bottom:20px;">
-    <h3 style="font-size:16px;margin:0 0 6px;">${
-      s.url
-        ? `<a href="${s.url}" style="color:#2982C4;text-decoration:none;">${s.headline.replace(/\*\*/g, "")}</a>`
-        : `<span style="color:#2982C4;">${s.headline.replace(/\*\*/g, "")}</span>`
-    }</h3>
-    <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${s.summary.replace(/\*\*/g, "")}${s.source ? ` <span style="color:#2982C4;font-style:italic;"> — ${s.source}</span>` : ""}</p>
-  </div>`
-    )
-    .join("")}
+  <div style="font-size:14px;color:#555;line-height:1.5;">
+    ${state.curatedNewsHtml}
+  </div>
 </div>`);
   }
 
@@ -648,6 +639,19 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Ad slot: before-footer
   parts.push(renderAdsForPosition(state.ads, "before-footer"));
+
+  // Partner Promo — just above the footer
+  if (state.partnerPromo) {
+    const pp = state.partnerPromo;
+    parts.push(`
+<div style="padding:16px 32px;">
+  <div style="background:#f8fafc;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;padding:20px;">
+    ${pp.title ? `<h3 style="font-size:16px;font-weight:bold;color:#1e293b;margin:0 0 12px;">${pp.title}</h3>` : ""}
+    <div style="font-size:14px;color:#555;line-height:1.6;margin:0 0 ${pp.ctaUrl && pp.ctaText ? "16px" : "0"};">${pp.bodyHtml}</div>
+    ${pp.ctaUrl && pp.ctaText ? `<div style="text-align:center;"><a href="${pp.ctaUrl}" style="display:inline-block;background:#2982C4;color:#ffffff;padding:10px 24px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:14px;">${pp.ctaText}</a></div>` : ""}
+  </div>
+</div>`);
+  }
 
   // Footer
   parts.push(`

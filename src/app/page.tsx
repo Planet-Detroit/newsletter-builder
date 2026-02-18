@@ -146,8 +146,8 @@ export default function Dashboard() {
             />
             <StatCard
               label="Curated News"
-              value={state.curatedStories.length}
-              unit="stories"
+              value={state.curatedNewsHtml.replace(/<[^>]*>/g, "").trim().length > 0 ? 1 : 0}
+              unit={state.curatedNewsHtml.replace(/<[^>]*>/g, "").trim().length > 0 ? "ready" : "empty"}
             />
             <StatCard
               label="Public Meetings"

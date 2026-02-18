@@ -19,6 +19,7 @@ import {
   LakeLevelData,
   SponsorsData,
   SupportCTA,
+  PartnerPromo,
   FundraisingCTA,
   DEFAULT_SECTIONS,
   DEFAULT_SPONSORS,
@@ -56,6 +57,7 @@ const initialState: NewsletterState = {
   sponsoredPosts: [],
   sponsoredByName: "",
   curatedStories: [],
+  curatedNewsHtml: "",
   events: [],
   eventsHtml: "",
   jobs: [],
@@ -66,6 +68,7 @@ const initialState: NewsletterState = {
   publicMeetings: [],
   commentPeriods: [],
   publicMeetingsIntro: "",
+  partnerPromo: null,
   fundraisingLetter: "",
   fundraisingCTA: DEFAULT_FUNDRAISING_CTA,
   ads: [],
@@ -103,6 +106,7 @@ type Action =
   | { type: "UPDATE_CURATED_STORY"; payload: { id: string; story: Partial<CuratedStory> } }
   | { type: "REORDER_CURATED_STORIES"; payload: { fromIndex: number; toIndex: number } }
   | { type: "REMOVE_CURATED_STORY"; payload: string }
+  | { type: "SET_CURATED_NEWS_HTML"; payload: string }
   | { type: "SET_EVENTS"; payload: EventItem[] }
   | { type: "SET_EVENTS_HTML"; payload: string }
   | { type: "SET_JOBS"; payload: JobListing[] }
@@ -113,6 +117,7 @@ type Action =
   | { type: "SET_PUBLIC_MEETINGS"; payload: PublicMeeting[] }
   | { type: "SET_COMMENT_PERIODS"; payload: CommentPeriod[] }
   | { type: "SET_PUBLIC_MEETINGS_INTRO"; payload: string }
+  | { type: "SET_PARTNER_PROMO"; payload: PartnerPromo | null }
   | { type: "SET_FUNDRAISING_LETTER"; payload: string }
   | { type: "SET_FUNDRAISING_CTA"; payload: FundraisingCTA }
   | { type: "SET_ADS"; payload: AdSlot[] }
@@ -217,6 +222,8 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
         ...state,
         curatedStories: state.curatedStories.filter((s) => s.id !== action.payload),
       };
+    case "SET_CURATED_NEWS_HTML":
+      return { ...state, curatedNewsHtml: action.payload };
     case "SET_EVENTS":
       return { ...state, events: action.payload };
     case "SET_EVENTS_HTML":
@@ -237,6 +244,8 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return { ...state, commentPeriods: action.payload };
     case "SET_PUBLIC_MEETINGS_INTRO":
       return { ...state, publicMeetingsIntro: action.payload };
+    case "SET_PARTNER_PROMO":
+      return { ...state, partnerPromo: action.payload };
     case "SET_FUNDRAISING_LETTER":
       return { ...state, fundraisingLetter: action.payload };
     case "SET_FUNDRAISING_CTA":

@@ -217,6 +217,13 @@ export interface SupportCTA {
   buttonUrl: string;
 }
 
+export interface PartnerPromo {
+  title: string;
+  bodyHtml: string;
+  ctaText: string;
+  ctaUrl: string;
+}
+
 export interface FundraisingCTA {
   headline: string;
   buttonText: string;
@@ -247,7 +254,8 @@ export interface NewsletterState {
   pdPosts: PDPost[];
   sponsoredPosts: PDPost[];
   sponsoredByName: string;
-  curatedStories: CuratedStory[];
+  curatedStories: CuratedStory[]; // legacy — kept for saved-state compat
+  curatedNewsHtml: string;
   events: EventItem[];
   eventsHtml: string;
   jobs: JobListing[];
@@ -260,6 +268,7 @@ export interface NewsletterState {
   publicMeetingsIntro: string;
   fundraisingLetter: string;
   fundraisingCTA: FundraisingCTA;
+  partnerPromo: PartnerPromo | null;
   ads: AdSlot[];
   co2: CO2Data | null;
   airQuality: AirQualityData | null;
@@ -325,6 +334,7 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 5, automationLevel: "semi", tab: "content" },
   { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 6, automationLevel: "semi", tab: "content" },
   { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 7, automationLevel: "manual", tab: "content" },
+  { id: "partner-promo", title: "Partner Promo", description: "Partner or sponsor promotion above the footer", status: "empty", icon: "🤝", order: 8, automationLevel: "manual", tab: "content" },
   // In Development tab — sections still being built out
   { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 1, automationLevel: "semi", tab: "in-development" },
   { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 2, automationLevel: "semi", tab: "in-development" },

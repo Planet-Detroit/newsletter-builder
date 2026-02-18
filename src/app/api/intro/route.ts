@@ -7,7 +7,7 @@ const client = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { pdPosts, curatedStories, events } = await req.json();
+    const { pdPosts, curatedStories, curatedNewsHtml, events } = await req.json();
 
     // Build context from all the week's content
     const postsSummary = (pdPosts || [])
@@ -15,10 +15,16 @@ export async function POST(req: NextRequest) {
       .map((p: { title: string; excerpt: string }) => `- ${p.title}: ${p.excerpt}`)
       .join("\n");
 
-    const storiesSummary = (curatedStories || [])
-      .filter((s: { selected: boolean }) => s.selected)
-      .map((s: { headline: string; source: string; summary: string }) => `- ${s.headline} (${s.source}): ${s.summary}`)
-      .join("\n");
+    // Use new HTML field if available, fall back to legacy story objects
+    let storiesSummary = "";
+    if (curatedNewsHtml && curatedNewsHtml.replace(/<[^>]*>/g, "").trim()) {
+      storiesSummary = curatedNewsHtml.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    } else {
+      storiesSummary = (curatedStories || [])
+        .filter((s: { selected: boolean }) => s.selected)
+        .map((s: { headline: string; source: string; summary: string }) => `- ${s.headline} (${s.source}): ${s.summary}`)
+        .join("\n");
+    }
 
     const eventsSummary = (events || [])
       .filter((e: { selected: boolean }) => e.selected)
