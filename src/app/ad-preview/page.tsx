@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
+import DOMPurify from "dompurify";
 
 function AdPreviewContent() {
   const searchParams = useSearchParams();
@@ -125,7 +126,7 @@ function AdPreviewContent() {
 
           {/* The actual ad */}
           <div style={{ padding: "16px 32px" }}>
-            <div dangerouslySetInnerHTML={{ __html: adHtml }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(adHtml) }} />
           </div>
 
           {/* Simulated newsletter context below the ad */}

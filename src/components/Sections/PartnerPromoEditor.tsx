@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { useNewsletter } from "@/context/NewsletterContext";
 import MiniWysiwyg from "./MiniWysiwyg";
 
@@ -116,7 +117,7 @@ export default function PartnerPromoEditor() {
             {title && <h3 className="font-bold text-foreground text-base mb-2">{title}</h3>}
             <div
               className="text-sm text-pd-muted prose prose-sm max-w-none mb-3 [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
-              dangerouslySetInnerHTML={{ __html: bodyHtml }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(bodyHtml, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'img', 'h3', 'h4'], ALLOWED_ATTR: ['href', 'src', 'alt', 'target', 'rel', 'class'] }) }}
             />
             {ctaUrl && ctaText && (
               <span
