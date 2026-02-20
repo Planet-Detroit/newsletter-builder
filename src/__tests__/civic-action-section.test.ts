@@ -67,6 +67,16 @@ function makeAction(overrides: Partial<CivicAction> = {}): CivicAction {
   };
 }
 
+/** Helper: create state with civic-action section enabled */
+function makeEnabledCivicState(overrides: Partial<NewsletterState> = {}): NewsletterState {
+  return makeState({
+    sections: DEFAULT_SECTIONS.map((s) =>
+      s.id === "civic-action" ? { ...s, enabled: true } : s
+    ),
+    ...overrides,
+  });
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // AC 1: Civic Action appears in Content tab (not in-development)
 // ──────────────────────────────────────────────────────────────────────────
@@ -99,6 +109,11 @@ describe("AC 1: Civic Action in Content tab", () => {
     expect(civicIdx).toBeGreaterThan(pdStoriesIdx);
     expect(civicIdx).toBeLessThan(curatedIdx);
   });
+
+  test("civic-action section title is 'Civic Action' (not 'Take Action')", () => {
+    const section = DEFAULT_SECTIONS.find((s) => s.id === "civic-action");
+    expect(section!.title).toBe("Civic Action");
+  });
 });
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -110,13 +125,13 @@ describe("AC 3: Edits reflected in newsletter preview", () => {
   test("changing an action title changes the generated HTML", () => {
     const action = makeAction({ title: "Original Title" });
     const html1 = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro text.", civicActions: [action] })
+      makeEnabledCivicState({ civicActionIntro: "Intro text.", civicActions: [action] })
     );
     expect(html1).toContain("Original Title");
 
     const updatedAction = { ...action, title: "Updated Title" };
     const html2 = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro text.", civicActions: [updatedAction] })
+      makeEnabledCivicState({ civicActionIntro: "Intro text.", civicActions: [updatedAction] })
     );
     expect(html2).toContain("Updated Title");
     expect(html2).not.toContain("Original Title");
@@ -125,7 +140,7 @@ describe("AC 3: Edits reflected in newsletter preview", () => {
   test("changing an action URL changes the generated HTML", () => {
     const action = makeAction({ url: "https://example.com/old" });
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro.", civicActions: [action] })
+      makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: [action] })
     );
     expect(html).toContain("https://example.com/old");
   });
@@ -138,24 +153,23 @@ describe("AC 3: Edits reflected in newsletter preview", () => {
 describe("AC 4: Empty actions omit the section", () => {
   test("no civic action HTML when actions array is empty", () => {
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Some intro.", civicActions: [] })
+      makeEnabledCivicState({ civicActionIntro: "Some intro.", civicActions: [] })
     );
-    // The section heading "Take Action" should NOT appear
-    expect(html).not.toContain("Take Action");
+    expect(html).not.toContain("Civic Action");
   });
 
   test("no civic action HTML when intro is empty", () => {
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "", civicActions: [makeAction()] })
+      makeEnabledCivicState({ civicActionIntro: "", civicActions: [makeAction()] })
     );
-    expect(html).not.toContain("Take Action");
+    expect(html).not.toContain("Civic Action");
   });
 
   test("civic action HTML present when both intro and actions exist", () => {
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Here's what to do.", civicActions: [makeAction()] })
+      makeEnabledCivicState({ civicActionIntro: "Here's what to do.", civicActions: [makeAction()] })
     );
-    expect(html).toContain("Take Action");
+    expect(html).toContain("Civic Action");
   });
 });
 
@@ -165,7 +179,7 @@ describe("AC 4: Empty actions omit the section", () => {
 
 describe("AC 5: Civic action section styling", () => {
   const html = generateNewsletterHTML(
-    makeState({
+    makeEnabledCivicState({
       civicActionIntro: "Act now on this important story.",
       civicActions: [
         makeAction({ actionType: "attend" }),
@@ -183,9 +197,9 @@ describe("AC 5: Civic action section styling", () => {
   });
 
   test("renders emojis for action types", () => {
-    // attend emoji: &#x1F4CD; (📍)
+    // attend emoji: &#x1F4CD; (pin)
     expect(html).toContain("&#x1F4CD;");
-    // comment emoji: &#x1F4AC; (💬)
+    // comment emoji: &#x1F4AC; (speech bubble)
     expect(html).toContain("&#x1F4AC;");
   });
 
@@ -205,10 +219,9 @@ describe("AC 6: UTM parameters on action links", () => {
       actionType: "attend",
     });
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro.", civicActions: [action] })
+      makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: [action] })
     );
 
-    // The URL in href should include UTM params
     expect(html).toContain("utm_source=newsletter");
     expect(html).toContain("utm_medium=email");
     expect(html).toContain("utm_campaign=friday_newsletter");
@@ -221,7 +234,7 @@ describe("AC 6: UTM parameters on action links", () => {
       makeAction({ id: "ca-2", actionType: "volunteer", url: "https://example.com/volunteer" }),
     ];
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro.", civicActions: actions })
+      makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: actions })
     );
 
     expect(html).toContain("utm_content=civic_action_comment");
@@ -231,37 +244,12 @@ describe("AC 6: UTM parameters on action links", () => {
   test("actions without a URL don't generate broken links", () => {
     const action = makeAction({ url: "" });
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro.", civicActions: [action] })
+      makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: [action] })
     );
     // No href with UTM params for empty URL
     expect(html).not.toContain("utm_source=newsletter");
     // Title should be bold text, not a link
     expect(html).toContain(`<strong>${action.title}</strong>`);
-  });
-
-  test("Read the full story link includes UTM parameters", () => {
-    const storyUrl = "https://planetdetroit.org/2026/02/test-story";
-    const state = makeState({
-      civicActionIntro: "Intro.",
-      civicActions: [makeAction()],
-      civicActionStoryId: 123,
-      pdPosts: [
-        {
-          id: 123,
-          title: "Test Story",
-          subtitle: "",
-          excerpt: "",
-          url: storyUrl,
-          featuredImage: null,
-          date: "2026-02-20",
-          selected: true,
-          photoLayout: "none",
-        },
-      ],
-    });
-    const html = generateNewsletterHTML(state);
-    expect(html).toContain("Read the full story");
-    expect(html).toContain(storyUrl);
   });
 });
 
@@ -279,7 +267,7 @@ describe("AC 8: More than 3 actions warning boundary", () => {
       makeAction({ id: "ca-4", title: "Action 4" }),
     ];
     const html = generateNewsletterHTML(
-      makeState({ civicActionIntro: "Intro.", civicActions: actions })
+      makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: actions })
     );
     expect(html).toContain("Action 1");
     expect(html).toContain("Action 2");
@@ -300,12 +288,12 @@ describe("AC 9: No story selected data boundary", () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────
-// Additional: "Read the full story" link in HTML
+// Compact layout: no "Read the full story" link
 // ──────────────────────────────────────────────────────────────────────────
 
-describe("Read the full story link", () => {
-  test("renders a link to the featured PD story when story is selected", () => {
-    const state = makeState({
+describe("Compact layout: no story link", () => {
+  test("does NOT render 'Read the full story' link (removed for compact layout)", () => {
+    const state = makeEnabledCivicState({
       civicActionIntro: "Intro text.",
       civicActions: [makeAction()],
       civicActionStoryId: 42,
@@ -324,24 +312,15 @@ describe("Read the full story link", () => {
       ],
     });
     const html = generateNewsletterHTML(state);
-    expect(html).toContain("Read the full story");
-    expect(html).toContain("https://planetdetroit.org/2026/02/water-quality");
-  });
-
-  test("does NOT render Read the full story when no story is linked", () => {
-    const html = generateNewsletterHTML(
-      makeState({
-        civicActionIntro: "Intro.",
-        civicActions: [makeAction()],
-        civicActionStoryId: null,
-      })
-    );
+    // The "Read the full story" link was removed in the compact layout update
     expect(html).not.toContain("Read the full story");
+    // But the civic action section itself should still render
+    expect(html).toContain("Civic Action");
   });
 });
 
 // ──────────────────────────────────────────────────────────────────────────
-// Additional: All 7 action type emojis render correctly
+// All 7 action type emojis render correctly
 // ──────────────────────────────────────────────────────────────────────────
 
 describe("Action type emoji mapping", () => {
@@ -362,7 +341,7 @@ describe("Action type emoji mapping", () => {
         url: "",
       });
       const html = generateNewsletterHTML(
-        makeState({ civicActionIntro: "Intro.", civicActions: [action] })
+        makeEnabledCivicState({ civicActionIntro: "Intro.", civicActions: [action] })
       );
       expect(html).toContain(emoji);
     });
