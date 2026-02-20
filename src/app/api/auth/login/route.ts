@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { signToken } from "@/lib/auth";
 
-const COOKIE_DOMAIN = ".tools.planetdetroit.org";
+const COOKIE_DOMAIN =
+  process.env.NODE_ENV === "production" ? ".tools.planetdetroit.org" : undefined;
 
 export async function POST(request: NextRequest) {
   try {
