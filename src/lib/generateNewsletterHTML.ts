@@ -152,15 +152,23 @@ const ACTION_EMOJI: Record<string, string> = {
   "learn-more": "&#x1F4DA;", // 📚
 };
 
-function renderCivicActionHTML(intro: string, actions: CivicAction[]): string {
+/** Appends UTM tracking parameters to a URL for GA4 civic action tracking. */
+function appendCivicActionUTM(url: string, actionType: string): string {
+  if (!url) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}utm_source=newsletter&utm_medium=email&utm_campaign=friday_newsletter&utm_content=civic_action_${actionType}`;
+}
+
+function renderCivicActionHTML(intro: string, actions: CivicAction[], storyUrl?: string, storyTitle?: string): string {
   const actionItems = actions
     .map((a) => {
       const emoji = ACTION_EMOJI[a.actionType] || "&#x2714;&#xFE0F;";
+      const trackedUrl = appendCivicActionUTM(a.url, a.actionType);
       const titleHtml = a.url
-        ? `<a href="${a.url}" style="color:#1e293b;text-decoration:none;font-weight:bold;">${a.title}</a>`
+        ? `<a href="${trackedUrl}" style="color:#1e293b;text-decoration:none;font-weight:bold;">${a.title}</a>`
         : `<strong>${a.title}</strong>`;
       const linkHtml = a.url
-        ? ` <a href="${a.url}" style="color:#2982C4;font-size:13px;text-decoration:none;">&rarr; Learn more</a>`
+        ? ` <a href="${trackedUrl}" style="color:#2982C4;font-size:13px;text-decoration:none;">&rarr; Learn more</a>`
         : "";
       return `<div style="margin-bottom:14px;padding-left:4px;">
         <div style="font-size:15px;margin-bottom:3px;">${emoji} ${titleHtml}</div>
@@ -169,12 +177,20 @@ function renderCivicActionHTML(intro: string, actions: CivicAction[]): string {
     })
     .join("");
 
+  // "Read the full story" link back to the PD article
+  const storyLinkHtml = storyUrl
+    ? `<div style="margin-top:8px;padding-top:12px;border-top:1px solid #d4e8f7;">
+        <a href="${appendCivicActionUTM(storyUrl, "read_story")}" style="color:#2982C4;font-size:13px;text-decoration:none;font-weight:bold;">&rarr; Read the full story${storyTitle ? `: ${storyTitle}` : ""}</a>
+      </div>`
+    : "";
+
   return `
 <div style="padding:16px 32px;">
   <div style="background:#f0f7fc;border-left:4px solid #2982C4;border-radius:6px;padding:20px 24px;">
     <div style="font-size:18px;font-weight:bold;color:#2982C4;margin-bottom:12px;">&#x1F91D; Take Action</div>
     <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 16px;">${intro}</p>
     ${actionItems}
+    ${storyLinkHtml}
   </div>
 </div>`;
 }
@@ -535,7 +551,15 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Civic Action — Take Action section
   if (state.civicActionIntro && state.civicActions.length > 0) {
-    parts.push(renderCivicActionHTML(state.civicActionIntro, state.civicActions));
+    const linkedStory = state.civicActionStoryId
+      ? state.pdPosts.find((p) => p.id === state.civicActionStoryId)
+      : undefined;
+    parts.push(renderCivicActionHTML(
+      state.civicActionIntro,
+      state.civicActions,
+      linkedStory?.url,
+      linkedStory?.title,
+    ));
   }
 
   // Public Meetings & Comment Periods

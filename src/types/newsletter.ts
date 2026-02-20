@@ -329,15 +329,15 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   // Content tab — weekly workhorse sections
   { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 1, automationLevel: "full", tab: "content" },
   { id: "sponsored-content", title: "Sponsored Content", description: "Sponsored posts from WordPress", status: "empty", icon: "💛", order: 2, automationLevel: "semi", tab: "content" },
-  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 3, automationLevel: "full", tab: "content" },
-  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 4, automationLevel: "semi", tab: "content" },
-  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 5, automationLevel: "semi", tab: "content" },
-  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 6, automationLevel: "semi", tab: "content" },
-  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 7, automationLevel: "manual", tab: "content" },
-  { id: "partner-promo", title: "Partner Promo", description: "Partner or sponsor promotion above the footer", status: "empty", icon: "🤝", order: 8, automationLevel: "manual", tab: "content" },
+  { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 3, automationLevel: "semi", tab: "content" },
+  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 4, automationLevel: "full", tab: "content" },
+  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 5, automationLevel: "semi", tab: "content" },
+  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 6, automationLevel: "semi", tab: "content" },
+  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 7, automationLevel: "semi", tab: "content" },
+  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 8, automationLevel: "manual", tab: "content" },
+  { id: "partner-promo", title: "Partner Promo", description: "Partner or sponsor promotion above the footer", status: "empty", icon: "🤝", order: 9, automationLevel: "manual", tab: "content" },
   // In Development tab — sections still being built out
-  { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 1, automationLevel: "semi", tab: "in-development" },
-  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 2, automationLevel: "semi", tab: "in-development" },
+  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 1, automationLevel: "semi", tab: "in-development" },
   // Fundraising tab — fundraising appeal content
   { id: "fundraising-letter", title: "Editor's Letter", description: "Fundraising appeal letter", status: "empty", icon: "💌", order: 1, automationLevel: "manual", tab: "fundraising" },
   { id: "fundraising-cta", title: "Donate CTA", description: "Call-to-action button linking to Donorbox", status: "empty", icon: "💚", order: 2, automationLevel: "manual", tab: "fundraising" },

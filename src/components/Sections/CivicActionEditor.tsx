@@ -197,6 +197,9 @@ export default function CivicActionEditor() {
             placeholder="Planet Detroit's journalism is designed not only to inform you, but inspire you to act..."
             className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue bg-white resize-none"
           />
+          <p className={`text-xs mt-1 ${state.civicActionIntro.length > 300 ? "text-amber-600" : "text-pd-muted"}`}>
+            {state.civicActionIntro.length}/300 characters{state.civicActionIntro.length > 300 ? " — consider trimming for newsletter space" : ""}
+          </p>
         </div>
       )}
 
@@ -215,6 +218,12 @@ export default function CivicActionEditor() {
               + Add action
             </button>
           </div>
+
+          {state.civicActions.length > 3 && (
+            <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded-lg mb-2">
+              You have {state.civicActions.length} actions. We recommend 1-3 for brevity — readers are more likely to act when choices are limited.
+            </p>
+          )}
 
           <div className="space-y-2">
             {state.civicActions.map((action) => {
@@ -242,6 +251,9 @@ export default function CivicActionEditor() {
                       rows={2}
                       className="w-full px-2.5 py-1.5 border border-pd-border rounded text-sm focus:outline-none focus:border-pd-blue bg-white resize-none"
                     />
+                    <p className={`text-xs ${action.description.length > 200 ? "text-amber-600" : "text-pd-muted"}`}>
+                      {action.description.length}/200{action.description.length > 200 ? " — consider shortening" : ""}
+                    </p>
                     <div className="flex gap-2">
                       <input
                         type="text"
