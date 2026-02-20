@@ -39,12 +39,33 @@ export default function CivicActionEditor() {
     setLoading(true);
     setError(null);
     try {
+      // Pass available meetings and comment periods as context for AI generation
+      const selectedMeetings = (state.publicMeetings || [])
+        .filter((m) => m.selected)
+        .map((m) => ({
+          title: m.title,
+          agency: m.agency,
+          start_datetime: m.start_datetime,
+          details_url: m.details_url,
+        }));
+      const selectedCommentPeriods = (state.commentPeriods || [])
+        .filter((c) => c.selected)
+        .map((c) => ({
+          title: c.title,
+          agency: c.agency,
+          end_date: c.end_date,
+          days_remaining: c.days_remaining,
+          comment_url: c.comment_url,
+        }));
+
       const res = await fetch("/api/civic-actions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitle: linkedStory.title,
           storyExcerpt: linkedStory.excerpt,
+          upcomingMeetings: selectedMeetings,
+          openCommentPeriods: selectedCommentPeriods,
         }),
       });
       if (!res.ok) {
@@ -59,7 +80,7 @@ export default function CivicActionEditor() {
     } finally {
       setLoading(false);
     }
-  }, [linkedStory, dispatch]);
+  }, [linkedStory, state.publicMeetings, state.commentPeriods, dispatch]);
 
   /* ── Action CRUD ─────────────────────────────────── */
 
