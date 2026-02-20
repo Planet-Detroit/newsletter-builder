@@ -193,12 +193,12 @@ export default function CivicActionEditor() {
             onChange={(e) =>
               dispatch({ type: "SET_CIVIC_ACTION_INTRO", payload: e.target.value })
             }
-            rows={3}
-            placeholder="Planet Detroit's journalism is designed not only to inform you, but inspire you to act..."
+            rows={2}
+            placeholder="Based on our reporting on [topic], here are actions you can take:"
             className="w-full px-3 py-2 border border-pd-border rounded-lg text-sm focus:outline-none focus:border-pd-blue bg-white resize-none"
           />
-          <p className={`text-xs mt-1 ${state.civicActionIntro.length > 300 ? "text-amber-600" : "text-pd-muted"}`}>
-            {state.civicActionIntro.length}/300 characters{state.civicActionIntro.length > 300 ? " — consider trimming for newsletter space" : ""}
+          <p className={`text-xs mt-1 ${state.civicActionIntro.length > 120 ? "text-amber-600" : "text-pd-muted"}`}>
+            {state.civicActionIntro.length}/120 characters{state.civicActionIntro.length > 120 ? " — keep to 1 sentence for compact layout" : ""}
           </p>
         </div>
       )}

@@ -27,19 +27,19 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `You are an editor at Planet Detroit, a nonprofit environmental news outlet covering Metro Detroit, Michigan. Your journalism is designed not only to inform readers, but to inspire civic action.
+          content: `You are an editor at Planet Detroit, a nonprofit environmental news outlet covering Metro Detroit, Michigan.
 
 Based on the following story, generate:
-1. A short intro paragraph (2-3 sentences) that connects the story to civic action. Frame it as: Planet Detroit's journalism is designed to inform and inspire action. Reference the specific story topic naturally. End with something like "Here are some actions you can take:" — but write it naturally, not formulaic.
+1. A single-sentence intro (under 120 characters) that references the story topic and leads into the action items. Example: "Based on our reporting on PFAS contamination, here are ways to get involved:"
 
-2. Between 2 and 4 specific, actionable civic engagement opportunities related to this story's topic. These should be real, concrete things a Metro Detroit resident could do. Think: attend a public meeting, submit a public comment, contact an elected official, sign a petition, volunteer with an organization, follow an organization's work, or learn more about the issue.
+2. Between 2 and 3 specific, actionable civic engagement opportunities related to this story's topic. These should be real, concrete things a Metro Detroit resident could do. Think: attend a public meeting, submit a public comment, contact an elected official, sign a petition, volunteer with an organization, follow an organization's work, or learn more about the issue.
 
 Story Title: ${storyTitle}
 ${storyExcerpt ? `Story Summary: ${storyExcerpt.slice(0, 2000)}` : ""}
 
 Return ONLY a valid JSON object (no markdown, no code fences) with this structure:
 {
-  "intro": "The intro paragraph here...",
+  "intro": "Single sentence under 120 characters referencing the story topic...",
   "actions": [
     {
       "title": "Short action title",
