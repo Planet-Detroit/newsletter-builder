@@ -13,6 +13,7 @@ export interface NewsletterSection {
   order: number;
   automationLevel: "full" | "semi" | "manual";
   tab: TabGroup;
+  enabled: boolean;
 }
 
 export type PhotoLayout = "none" | "small-left" | "top";
@@ -327,29 +328,29 @@ export const DEFAULT_SPONSORS: SponsorsData = {
 
 export const DEFAULT_SECTIONS: NewsletterSection[] = [
   // Content tab — weekly workhorse sections
-  { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 1, automationLevel: "full", tab: "content" },
-  { id: "sponsored-content", title: "Sponsored Content", description: "Sponsored posts from WordPress", status: "empty", icon: "💛", order: 2, automationLevel: "semi", tab: "content" },
-  { id: "civic-action", title: "Take Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 3, automationLevel: "semi", tab: "content" },
-  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 4, automationLevel: "full", tab: "content" },
-  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 5, automationLevel: "semi", tab: "content" },
-  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 6, automationLevel: "semi", tab: "content" },
-  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 7, automationLevel: "semi", tab: "content" },
-  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 8, automationLevel: "manual", tab: "content" },
-  { id: "partner-promo", title: "Partner Promo", description: "Partner or sponsor promotion above the footer", status: "empty", icon: "🤝", order: 9, automationLevel: "manual", tab: "content" },
+  { id: "pd-stories", title: "Reporting from Planet Detroit", description: "Recent posts from planetdetroit.org", status: "empty", icon: "📝", order: 1, automationLevel: "full", tab: "content", enabled: true },
+  { id: "sponsored-content", title: "Sponsored Content", description: "Sponsored posts from WordPress", status: "empty", icon: "💛", order: 2, automationLevel: "semi", tab: "content", enabled: true },
+  { id: "civic-action", title: "Civic Action", description: "Civic actions readers can take based on PD reporting", status: "empty", icon: "🤝", order: 3, automationLevel: "semi", tab: "content", enabled: false },
+  { id: "curated-news", title: "What We're Reading", description: "Curated news from external sources", status: "empty", icon: "📖", order: 4, automationLevel: "full", tab: "content", enabled: true },
+  { id: "intro", title: "Editor's Letter", description: "AI-generated intro from the week's content", status: "empty", icon: "✏️", order: 5, automationLevel: "semi", tab: "content", enabled: true },
+  { id: "events", title: "Events", description: "Upcoming community & environmental events", status: "empty", icon: "📅", order: 6, automationLevel: "semi", tab: "content", enabled: true },
+  { id: "jobs", title: "Jobs", description: "Environmental job listings", status: "empty", icon: "💼", order: 7, automationLevel: "semi", tab: "content", enabled: true },
+  { id: "ps-cta", title: "P.S. Call-to-Action", description: "Promo or call-to-action after the intro", status: "empty", icon: "📣", order: 8, automationLevel: "manual", tab: "content", enabled: true },
+  { id: "partner-promo", title: "Partner Promo", description: "Partner or sponsor promotion above the footer", status: "empty", icon: "🤝", order: 9, automationLevel: "manual", tab: "content", enabled: true },
   // In Development tab — sections still being built out
-  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 1, automationLevel: "semi", tab: "in-development" },
+  { id: "public-meetings", title: "Public Meetings & Comment Periods", description: "Upcoming government meetings and open comment periods", status: "empty", icon: "🏛️", order: 1, automationLevel: "semi", tab: "in-development", enabled: false },
   // Fundraising tab — fundraising appeal content
-  { id: "fundraising-letter", title: "Editor's Letter", description: "Fundraising appeal letter", status: "empty", icon: "💌", order: 1, automationLevel: "manual", tab: "fundraising" },
-  { id: "fundraising-cta", title: "Donate CTA", description: "Call-to-action button linking to Donorbox", status: "empty", icon: "💚", order: 2, automationLevel: "manual", tab: "fundraising" },
-  { id: "fundraising-tracker", title: "Fundraiser Performance", description: "Campaign metrics for fundraising emails", status: "ready", icon: "📊", order: 3, automationLevel: "full", tab: "fundraising" },
+  { id: "fundraising-letter", title: "Editor's Letter", description: "Fundraising appeal letter", status: "empty", icon: "💌", order: 1, automationLevel: "manual", tab: "fundraising", enabled: true },
+  { id: "fundraising-cta", title: "Donate CTA", description: "Call-to-action button linking to Donorbox", status: "empty", icon: "💚", order: 2, automationLevel: "manual", tab: "fundraising", enabled: true },
+  { id: "fundraising-tracker", title: "Fundraiser Performance", description: "Campaign metrics for fundraising emails", status: "ready", icon: "📊", order: 3, automationLevel: "full", tab: "fundraising", enabled: true },
   // Ads tab — optional sponsored content
-  { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads" },
-  { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads" },
+  { id: "ads", title: "Ad Slots", description: "Sponsored content between sections", status: "empty", icon: "📢", order: 1, automationLevel: "manual", tab: "ads", enabled: true },
+  { id: "ad-tracker", title: "Ad Performance", description: "Campaign metrics and link tracking", status: "ready", icon: "📊", order: 2, automationLevel: "full", tab: "ads", enabled: true },
   // Settings tab — static / set-and-forget sections
-  { id: "header", title: "Header & Logo", description: "Logo and newsletter date", status: "ready", icon: "📰", order: 1, automationLevel: "full", tab: "settings" },
-  { id: "co2", title: "CO₂ Widget", description: "Current atmospheric CO₂ from NOAA/Scripps", status: "empty", icon: "🌍", order: 2, automationLevel: "full", tab: "settings" },
-  { id: "featured", title: "Featured Promo", description: "Special announcements or campaigns", status: "empty", icon: "⭐", order: 3, automationLevel: "semi", tab: "settings" },
-  { id: "sponsors", title: "Planet Champions & Partners", description: "Sponsors and impact partner listings", status: "ready", icon: "🌎", order: 4, automationLevel: "manual", tab: "settings" },
-  { id: "support", title: "Support CTA", description: "Donation/membership call-to-action", status: "ready", icon: "💚", order: 5, automationLevel: "full", tab: "settings" },
-  { id: "footer", title: "Footer", description: "Static footer with social links", status: "ready", icon: "🔗", order: 6, automationLevel: "full", tab: "settings" },
+  { id: "header", title: "Header & Logo", description: "Logo and newsletter date", status: "ready", icon: "📰", order: 1, automationLevel: "full", tab: "settings", enabled: true },
+  { id: "co2", title: "CO₂ Widget", description: "Current atmospheric CO₂ from NOAA/Scripps", status: "empty", icon: "🌍", order: 2, automationLevel: "full", tab: "settings", enabled: true },
+  { id: "featured", title: "Featured Promo", description: "Special announcements or campaigns", status: "empty", icon: "⭐", order: 3, automationLevel: "semi", tab: "settings", enabled: true },
+  { id: "sponsors", title: "Planet Champions & Partners", description: "Sponsors and impact partner listings", status: "ready", icon: "🌎", order: 4, automationLevel: "manual", tab: "settings", enabled: true },
+  { id: "support", title: "Support CTA", description: "Donation/membership call-to-action", status: "ready", icon: "💚", order: 5, automationLevel: "full", tab: "settings", enabled: true },
+  { id: "footer", title: "Footer", description: "Static footer with social links", status: "ready", icon: "🔗", order: 6, automationLevel: "full", tab: "settings", enabled: true },
 ];

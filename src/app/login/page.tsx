@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { setUserCookie } from "@/lib/sync";
 
-const TEAM_MEMBERS = ["Nina", "Dustin"];
+const TEAM_MEMBERS = ["Nina", "Dustin", "Brian"];
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");

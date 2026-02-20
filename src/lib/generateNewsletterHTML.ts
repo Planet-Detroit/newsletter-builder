@@ -10,6 +10,12 @@ import { STAFF_MEMBERS } from "@/types/newsletter";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
+/** Returns true if the section is enabled (or if it has no enabled field for backwards compat). */
+export function isSectionEnabled(state: NewsletterState, sectionId: string): boolean {
+  const section = state.sections.find((s) => s.id === sectionId);
+  return section ? section.enabled !== false : true;
+}
+
 function formatIssueDate(dateStr: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T12:00:00");
@@ -187,7 +193,7 @@ function renderCivicActionHTML(intro: string, actions: CivicAction[], storyUrl?:
   return `
 <div style="padding:16px 32px;">
   <div style="background:#f0f7fc;border-left:4px solid #2982C4;border-radius:6px;padding:20px 24px;">
-    <div style="font-size:18px;font-weight:bold;color:#2982C4;margin-bottom:12px;">&#x1F91D; Take Action</div>
+    <div style="font-size:18px;font-weight:bold;color:#2982C4;margin-bottom:12px;">&#x1F91D; Civic Action</div>
     <p style="font-size:14px;color:#333;line-height:1.6;margin:0 0 16px;">${intro}</p>
     ${actionItems}
     ${storyLinkHtml}
@@ -469,7 +475,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 </div>`);
 
   // Intro + Signoff
-  if (state.intro) {
+  if (state.intro && isSectionEnabled(state, "intro")) {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
 <div style="padding:16px 32px;">
@@ -491,7 +497,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // P.S. CTA
-  if (state.psCTA) {
+  if (state.psCTA && isSectionEnabled(state, "ps-cta")) {
     const ctaUrl = state.psCtaUrl || "https://donorbox.org/be-a-planet-detroiter-780440";
     const ctaButtonText = state.psCtaButtonText || "Support Planet Detroit";
     parts.push(`
@@ -504,7 +510,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Featured Promo
-  if (state.featuredPromo) {
+  if (state.featuredPromo && isSectionEnabled(state, "featured")) {
     const fp = state.featuredPromo;
     parts.push(`
 <div style="padding:16px 32px;">
@@ -523,7 +529,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   parts.push(renderAdsForPosition(state.ads, "after-intro"));
 
   // PD Stories
-  if (selectedPosts.length > 0) {
+  if (selectedPosts.length > 0 && isSectionEnabled(state, "pd-stories")) {
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("Reporting from Planet Detroit")}
@@ -536,7 +542,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Sponsored Content
   const selectedSponsored = (state.sponsoredPosts || []).filter((p) => p.selected);
-  if (selectedSponsored.length > 0) {
+  if (selectedSponsored.length > 0 && isSectionEnabled(state, "sponsored-content")) {
     parts.push(`
 <div style="padding:16px 32px;">
   <div style="background:#fffbeb;border-radius:8px;padding:20px 24px;">
@@ -549,8 +555,8 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 </div>`);
   }
 
-  // Civic Action — Take Action section
-  if (state.civicActionIntro && state.civicActions.length > 0) {
+  // Civic Action section
+  if (state.civicActionIntro && state.civicActions.length > 0 && isSectionEnabled(state, "civic-action")) {
     const linkedStory = state.civicActionStoryId
       ? state.pdPosts.find((p) => p.id === state.civicActionStoryId)
       : undefined;
@@ -565,7 +571,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   // Public Meetings & Comment Periods
   const selectedMeetings = (state.publicMeetings || []).filter((m) => m.selected);
   const selectedCommentPeriods = (state.commentPeriods || []).filter((c) => c.selected);
-  if (selectedMeetings.length > 0 || selectedCommentPeriods.length > 0) {
+  if ((selectedMeetings.length > 0 || selectedCommentPeriods.length > 0) && isSectionEnabled(state, "public-meetings")) {
     parts.push(renderPublicMeetingsHTML(
       state.publicMeetingsIntro || "",
       selectedMeetings,
@@ -574,7 +580,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Curated News / What We're Reading
-  if (hasCuratedNews) {
+  if (hasCuratedNews && isSectionEnabled(state, "curated-news")) {
     parts.push(`
 <div style="padding:16px 32px;">
   ${sectionTitle("What We're Reading")}
@@ -588,7 +594,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   parts.push(renderAdsForPosition(state.ads, "after-reading"));
 
   // Jobs — single-line format: Title | Organization
-  if (selectedJobs.length > 0) {
+  if (selectedJobs.length > 0 && isSectionEnabled(state, "jobs")) {
     const PARTNER_LINK = "https://planetdetroit.org/impactpartners/";
     const tierBadge = (tier: string | null) => {
       if (tier === "champion") return ` <a href="${PARTNER_LINK}" style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;color:#2982C4;text-decoration:none;border:1px solid #2982C4;padding:1px 5px;border-radius:3px;margin-left:8px;">Planet Champion</a>`;
@@ -619,7 +625,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Events
-  if (hasEventsHtml) {
+  if (hasEventsHtml && isSectionEnabled(state, "events")) {
     // Post-process events HTML to ensure links are blue
     const blueLinkedEventsHtml = state.eventsHtml.replace(
       /<a\s+(?![^>]*style=)/gi,
@@ -638,7 +644,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Sponsors
-  if (state.sponsors.champions.length > 0 || state.sponsors.partners.length > 0) {
+  if ((state.sponsors.champions.length > 0 || state.sponsors.partners.length > 0) && isSectionEnabled(state, "sponsors")) {
     parts.push(`
 <div style="background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;text-align:center;">
   <p style="font-size:14px;font-weight:bold;color:#1e293b;margin:0 0 12px;text-align:center;">Thank you to Planet Detroit 2026 Planet Champions &amp; Impact Partners</p>
@@ -648,24 +654,26 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   }
 
   // Support CTA — black text headline, #ea5a39 button with white text
-  const supportCTA = state.supportCTA || {
-    headline: "Support local environmental journalism",
-    buttonText: "Donate to Planet Detroit",
-    buttonUrl: "https://donorbox.org/be-a-planet-detroiter-780440",
-  };
-  parts.push(`
+  if (isSectionEnabled(state, "support")) {
+    const supportCTA = state.supportCTA || {
+      headline: "Support local environmental journalism",
+      buttonText: "Donate to Planet Detroit",
+      buttonUrl: "https://donorbox.org/be-a-planet-detroiter-780440",
+    };
+    parts.push(`
 <div style="padding:16px 32px;">
   <div style="background:#ffffff;padding:24px;text-align:center;border-radius:8px;border:1px solid #e2e8f0;">
     <p style="color:#1e293b;font-size:16px;font-weight:bold;margin:0 0 12px;">${supportCTA.headline}</p>
     <a href="${supportCTA.buttonUrl}" style="display:inline-block;background:#ea5a39;color:#ffffff;padding:12px 32px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:14px;">${supportCTA.buttonText}</a>
   </div>
 </div>`);
+  }
 
   // Ad slot: before-footer
   parts.push(renderAdsForPosition(state.ads, "before-footer"));
 
   // Partner Promo — just above the footer
-  if (state.partnerPromo) {
+  if (state.partnerPromo && isSectionEnabled(state, "partner-promo")) {
     const pp = state.partnerPromo;
     parts.push(`
 <div style="padding:16px 32px;">

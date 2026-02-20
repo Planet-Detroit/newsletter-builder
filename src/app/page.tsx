@@ -132,6 +132,9 @@ export default function Dashboard() {
               key={section.id}
               section={section}
               onClick={() => setActiveSection(section)}
+              onToggleEnabled={(id) =>
+                dispatch({ type: "TOGGLE_SECTION_ENABLED", payload: id })
+              }
             />
           ))}
         </div>

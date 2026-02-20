@@ -112,7 +112,7 @@ export default function CivicActionEditor() {
       {/* Info box */}
       <div className="p-4 bg-pd-blue-50 rounded-lg border border-pd-blue/20">
         <p className="text-sm text-pd-blue-dark mb-1">
-          <strong>Take Action</strong> — Connect your reporting to civic engagement. Pick a featured story, then generate or manually add action items for readers.
+          <strong>Civic Action</strong> — Connect your reporting to civic engagement. Pick a featured story, then generate or manually add action items for readers.
         </p>
         <p className="text-xs text-pd-muted">
           This section appears right after your PD stories in the newsletter.

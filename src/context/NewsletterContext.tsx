@@ -125,6 +125,7 @@ type Action =
   | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
   | { type: "SET_LAKE_LEVELS"; payload: LakeLevelData | null }
   | { type: "UPDATE_SECTION_STATUS"; payload: { id: string; status: SectionStatus } }
+  | { type: "TOGGLE_SECTION_ENABLED"; payload: string }
   | { type: "LOAD_STATE"; payload: NewsletterState }
   | { type: "RESET" };
 
@@ -265,6 +266,13 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
           s.id === action.payload.id ? { ...s, status: action.payload.status } : s
         ),
       };
+    case "TOGGLE_SECTION_ENABLED":
+      return {
+        ...state,
+        sections: state.sections.map((s) =>
+          s.id === action.payload ? { ...s, enabled: !s.enabled } : s
+        ),
+      };
     case "LOAD_STATE":
       return { ...action.payload };
     case "RESET":
@@ -323,12 +331,18 @@ function migrateState(parsed: Record<string, unknown>): NewsletterState {
       ...p,
     }));
   }
-  // Always use latest section definitions (preserving statuses)
+  // Always use latest section definitions (preserving statuses and enabled state)
   const mergedSections = DEFAULT_SECTIONS.map((def) => {
     const saved = (
-      (parsed.sections as { id: string; status: string }[]) || []
+      (parsed.sections as { id: string; status: string; enabled?: boolean }[]) || []
     ).find((s) => s.id === def.id);
-    return saved ? { ...def, status: saved.status as SectionStatus } : def;
+    if (!saved) return def;
+    return {
+      ...def,
+      status: saved.status as SectionStatus,
+      // Preserve saved enabled state if it exists, otherwise use the default
+      enabled: typeof saved.enabled === "boolean" ? saved.enabled : def.enabled,
+    };
   });
   return {
     ...initialState,
@@ -527,11 +541,12 @@ export function NewsletterProvider({ children }: { children: React.ReactNode }) 
     return () => clearInterval(interval);
   }, [mounted, state, currentUser, lastEditor, syncStatus]);
 
-  const contentSections = state.sections.filter((s) => s.tab === "content");
-  const settingsSections = state.sections.filter((s) => s.tab === "settings");
-  const adsSections = state.sections.filter((s) => s.tab === "ads");
-  const inDevSections = state.sections.filter((s) => s.tab === "in-development");
-  const fundraisingSections = state.sections.filter((s) => s.tab === "fundraising");
+  // Only count enabled sections in progress calculations
+  const contentSections = state.sections.filter((s) => s.tab === "content" && s.enabled !== false);
+  const settingsSections = state.sections.filter((s) => s.tab === "settings" && s.enabled !== false);
+  const adsSections = state.sections.filter((s) => s.tab === "ads" && s.enabled !== false);
+  const inDevSections = state.sections.filter((s) => s.tab === "in-development" && s.enabled !== false);
+  const fundraisingSections = state.sections.filter((s) => s.tab === "fundraising" && s.enabled !== false);
   const contentCompletedCount = contentSections.filter((s) => s.status === "ready").length;
   const contentTotalCount = contentSections.length;
   const settingsCompletedCount = settingsSections.filter((s) => s.status === "ready").length;
