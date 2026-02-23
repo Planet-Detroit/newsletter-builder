@@ -62,14 +62,20 @@ function makeState(overrides: Partial<NewsletterState> = {}): NewsletterState {
 // ──────────────────────────────────────────────────────────────────────────
 
 describe("Default section enabled values", () => {
-  test("civic-action defaults to disabled", () => {
+  test("civic-action defaults to enabled", () => {
     const section = DEFAULT_SECTIONS.find((s) => s.id === "civic-action");
-    expect(section!.enabled).toBe(false);
+    expect(section!.enabled).toBe(true);
   });
 
-  test("public-meetings defaults to disabled", () => {
+  test("public-meetings defaults to enabled", () => {
     const section = DEFAULT_SECTIONS.find((s) => s.id === "public-meetings");
-    expect(section!.enabled).toBe(false);
+    expect(section!.enabled).toBe(true);
+  });
+
+  test("all sections default to enabled", () => {
+    for (const section of DEFAULT_SECTIONS) {
+      expect(section.enabled).toBe(true);
+    }
   });
 
   test("pd-stories defaults to enabled", () => {
@@ -100,7 +106,11 @@ describe("isSectionEnabled helper", () => {
   });
 
   test("returns false for disabled sections", () => {
-    const state = makeState();
+    const state = makeState({
+      sections: DEFAULT_SECTIONS.map((s) =>
+        s.id === "civic-action" ? { ...s, enabled: false } : s
+      ),
+    });
     expect(isSectionEnabled(state, "civic-action")).toBe(false);
   });
 
@@ -115,7 +125,7 @@ describe("isSectionEnabled helper", () => {
 // ──────────────────────────────────────────────────────────────────────────
 
 describe("Disabled sections excluded from HTML", () => {
-  test("civic-action section excluded when disabled (default)", () => {
+  test("civic-action section included when enabled (default)", () => {
     const html = generateNewsletterHTML(
       makeState({
         civicActionIntro: "Here are actions.",
@@ -128,16 +138,16 @@ describe("Disabled sections excluded from HTML", () => {
         }],
       })
     );
-    // civic-action is disabled by default, so content should not appear
-    expect(html).not.toContain("Civic Action");
-    expect(html).not.toContain("Test Action");
+    // civic-action is enabled by default, so content should appear
+    expect(html).toContain("Civic Action");
+    expect(html).toContain("Test Action");
   });
 
-  test("civic-action section included when enabled", () => {
+  test("civic-action section excluded when disabled", () => {
     const html = generateNewsletterHTML(
       makeState({
         sections: DEFAULT_SECTIONS.map((s) =>
-          s.id === "civic-action" ? { ...s, enabled: true } : s
+          s.id === "civic-action" ? { ...s, enabled: false } : s
         ),
         civicActionIntro: "Here are actions.",
         civicActions: [{
@@ -149,8 +159,8 @@ describe("Disabled sections excluded from HTML", () => {
         }],
       })
     );
-    expect(html).toContain("Civic Action");
-    expect(html).toContain("Test Action");
+    expect(html).not.toContain("Civic Action");
+    expect(html).not.toContain("Test Action");
   });
 
   test("intro section excluded when disabled", () => {
