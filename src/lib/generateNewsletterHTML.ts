@@ -95,7 +95,7 @@ function renderShareLinks(url: string, title: string): string {
 
 function renderStoryHTML(post: PDPost, { shareLinks = false, subtitleOnly = false } = {}): string {
   const layout = post.photoLayout || "small-left";
-  const blurb = subtitleOnly ? (post.subtitle || "") : (post.subtitle || post.excerpt);
+  const blurb = subtitleOnly ? (post.subtitle || post.excerpt || "") : (post.subtitle || post.excerpt);
   const img = post.featuredImage;
   const share = shareLinks ? renderShareLinks(post.url, post.title) : "";
   const blurbHtml = blurb ? `\n  <p style="font-size:14px;color:#555;margin:0;line-height:1.5;">${blurb}</p>` : "";
@@ -519,6 +519,22 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Ad slot: after-intro
   parts.push(renderAdsForPosition(state.ads, "after-intro"));
+
+  // App Download promo
+  if (isSectionEnabled(state, "app-download")) {
+    parts.push(`
+<div style="padding:16px 32px;">
+  <div style="background:#f0f7fc;border-radius:8px;padding:24px;text-align:center;border:1px solid #d4e8f7;">
+    <div style="font-size:28px;margin-bottom:8px;">&#x1F4F1;</div>
+    <h3 style="font-size:18px;font-weight:bold;color:#1e293b;margin:0 0 6px;">Download the Planet Detroit App</h3>
+    <p style="font-size:14px;color:#555;margin:0 0 16px;line-height:1.5;">Get Michigan environmental news delivered straight to your phone.</p>
+    <div>
+      <a href="https://apps.apple.com/us/app/planet-detroit/id6750488771" style="display:inline-block;background:#1e293b;color:#ffffff;padding:10px 20px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:13px;margin:0 6px 8px;">App Store</a>
+      <a href="https://play.google.com/store/apps/details?id=com.planetdetroit.digestapp" style="display:inline-block;background:#1e293b;color:#ffffff;padding:10px 20px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:13px;margin:0 6px 8px;">Google Play</a>
+    </div>
+  </div>
+</div>`);
+  }
 
   // PD Stories
   if (selectedPosts.length > 0 && isSectionEnabled(state, "pd-stories")) {

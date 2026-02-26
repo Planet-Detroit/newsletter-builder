@@ -71,6 +71,8 @@ export default function SectionEditor({ section, onClose }: SectionEditorProps) 
         return <FundraisingCtaEditor />;
       case "fundraising-tracker":
         return <FundraisingTracker />;
+      case "app-download":
+        return <StaticSection title={section.title} description="Hardcoded promotional block encouraging readers to download the Planet Detroit app. Appears above PD Stories in the newsletter. Toggle this section on/off to include or exclude it." />;
       case "footer":
         return <StaticSection title={section.title} description="The footer includes social links, your address, slogan, and unsubscribe link. Edit address/slogan in src/lib/generateNewsletterHTML.ts." />;
       default:

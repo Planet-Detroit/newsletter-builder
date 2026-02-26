@@ -350,6 +350,7 @@ export const DEFAULT_SECTIONS: NewsletterSection[] = [
   { id: "header", title: "Header & Logo", description: "Logo and newsletter date", status: "ready", icon: "📰", order: 1, automationLevel: "full", tab: "settings", enabled: true },
   { id: "co2", title: "CO₂ Widget", description: "Current atmospheric CO₂ from NOAA/Scripps", status: "empty", icon: "🌍", order: 2, automationLevel: "full", tab: "settings", enabled: true },
   { id: "featured", title: "Featured Promo", description: "Special announcements or campaigns", status: "empty", icon: "⭐", order: 3, automationLevel: "semi", tab: "settings", enabled: true },
+  { id: "app-download", title: "App Download", description: "Download the Planet Detroit app promo", status: "ready", icon: "📱", order: 3.5, automationLevel: "full", tab: "settings", enabled: true },
   { id: "sponsors", title: "Planet Champions & Partners", description: "Sponsors and impact partner listings", status: "ready", icon: "🌎", order: 4, automationLevel: "manual", tab: "settings", enabled: true },
   { id: "support", title: "Support CTA", description: "Donation/membership call-to-action", status: "ready", icon: "💚", order: 5, automationLevel: "full", tab: "settings", enabled: true },
   { id: "footer", title: "Footer", description: "Static footer with social links", status: "ready", icon: "🔗", order: 6, automationLevel: "full", tab: "settings", enabled: true },
