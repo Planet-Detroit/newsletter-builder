@@ -396,7 +396,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     const thisYear = state.co2.date ? new Date(state.co2.date).getFullYear() : new Date().getFullYear();
     const lastYear = thisYear - 1;
     const lastYearPpm = state.co2.lastYear != null ? `${state.co2.lastYear} ppm` : "n/a";
-    envStrip = `<div style="border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;padding:10px 0;margin-top:16px;text-align:center;">
+    envStrip = `<div style="padding:10px 0;margin-top:16px;text-align:center;">
   <a href="https://gml.noaa.gov/ccgg/trends/weekly.html" style="text-decoration:none;color:#1e293b;font-size:13px;line-height:1.5;">CO&#8322; <strong>${thisYear}</strong> ${state.co2.current} ppm / <strong>${lastYear}</strong> ${lastYearPpm}</a>
   <br><a href="https://www.nature.org/en-us/get-involved/how-to-help/carbon-footprint-calculator/carbon-by-birth-year/" style="color:#2982C4;font-size:12px;text-decoration:none;">What was the CO&#8322; when you were born?</a>
 </div>`;
@@ -434,7 +434,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Header
   parts.push(`
-<div style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:1px solid #e2e8f0;">
+<div style="background:#ffffff;padding:24px 32px;text-align:center;">
   ${logoHTML}
   ${issueDate ? `<p style="color:#1e293b;font-size:14px;font-weight:bold;margin:8px 0 0;">${issueDate}</p>` : ""}
   ${envStrip}
