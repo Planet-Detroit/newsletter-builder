@@ -101,6 +101,7 @@ type Action =
   | { type: "SET_SPONSORED_POSTS"; payload: PDPost[] }
   | { type: "TOGGLE_SPONSORED_POST"; payload: number }
   | { type: "SET_SPONSORED_POST_PHOTO_LAYOUT"; payload: { id: number; layout: PhotoLayout } }
+  | { type: "SET_SPONSORED_POST_SUBTITLE"; payload: { id: number; subtitle: string } }
   | { type: "SET_SPONSORED_BY_NAME"; payload: string }
   | { type: "SET_CURATED_STORIES"; payload: CuratedStory[] }
   | { type: "UPDATE_CURATED_STORY"; payload: { id: string; story: Partial<CuratedStory> } }
@@ -201,6 +202,13 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
           p.id === action.payload.id ? { ...p, photoLayout: action.payload.layout } : p
         ),
       };
+    case "SET_SPONSORED_POST_SUBTITLE":
+      return {
+        ...state,
+        sponsoredPosts: state.sponsoredPosts.map((p) =>
+          p.id === action.payload.id ? { ...p, subtitle: action.payload.subtitle } : p
+        ),
+      };
     case "SET_SPONSORED_BY_NAME":
       return { ...state, sponsoredByName: action.payload };
     case "SET_CURATED_STORIES":
@@ -279,7 +287,7 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return {
         ...initialState,
         issueDate: new Date().toISOString().slice(0, 10),
-        // Preserve ads, jobs, events, and public meetings across issue resets
+        // Preserve ads, jobs, events, public meetings, and sponsors across issue resets
         ads: state.ads,
         jobs: state.jobs,
         jobsShowDescriptions: state.jobsShowDescriptions,
@@ -288,6 +296,7 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
         publicMeetings: state.publicMeetings,
         commentPeriods: state.commentPeriods,
         publicMeetingsIntro: state.publicMeetingsIntro,
+        sponsors: state.sponsors,
       };
     default:
       return state;

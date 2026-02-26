@@ -118,6 +118,20 @@ export default function SponsoredContentSelector() {
                 </span>
               </div>
 
+              {/* Editable blurb for selected posts */}
+              {post.selected && (
+                <div className="mt-2 ml-6">
+                  <label className="block text-[10px] text-pd-muted/50 uppercase tracking-wider mb-1">Blurb</label>
+                  <textarea
+                    value={post.subtitle || post.excerpt || ""}
+                    onChange={(e) => dispatch({ type: "SET_SPONSORED_POST_SUBTITLE", payload: { id: post.id, subtitle: e.target.value } })}
+                    placeholder="Short description for the newsletter..."
+                    rows={2}
+                    className="w-full px-2.5 py-1.5 text-xs border border-pd-border/60 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:border-amber-400 resize-y"
+                  />
+                </div>
+              )}
+
               {/* Photo layout picker for selected posts */}
               {post.selected && post.featuredImage && (
                 <div className="flex items-center gap-1 mt-2 ml-6">
