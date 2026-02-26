@@ -445,7 +445,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
 <div style="padding:8px 32px 16px;">
-  <div style="font-size:16px;line-height:1.5;color:#333;"><strong>Dear Planet Detroiter,</strong><br><br>${state.intro.replace(/\n/g, "<br>")}</div>
+  <div style="font-size:16px;line-height:1.3;color:#333;"><strong>Dear Planet Detroiter,</strong><br><br>${state.intro.replace(/\n/g, "<br>")}</div>
   <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
     <tr>
       <td style="vertical-align:middle;padding-right:14px;">
