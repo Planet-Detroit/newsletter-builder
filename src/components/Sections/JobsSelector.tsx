@@ -365,12 +365,14 @@ export default function JobsSelector() {
                     )}
                     <button
                       onClick={() => toggleJob(job.id)}
-                      className={`w-6 h-6 rounded flex items-center justify-center text-xs transition-colors ${
-                        job.selected ? "bg-pd-blue text-white" : "bg-slate-200 text-pd-muted"
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                        job.selected
+                          ? "bg-pd-blue text-white hover:bg-pd-blue/80"
+                          : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 ring-1 ring-emerald-300"
                       }`}
-                      title={job.selected ? "Included" : "Excluded"}
+                      title={job.selected ? "Click to exclude from newsletter" : "Click to include in newsletter"}
                     >
-                      {job.selected ? "\u2713" : "\u2014"}
+                      {job.selected ? "Added \u2713" : "Add"}
                     </button>
                     <button
                       onClick={() => removeJob(job.id)}
