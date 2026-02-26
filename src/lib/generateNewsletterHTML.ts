@@ -73,10 +73,10 @@ function renderShareLinks(url: string, title: string): string {
   const nextdoorBody = encodeURIComponent(`${title} via Planet Detroit ${url}`);
   const emailSubject = encodeURIComponent(title);
   const emailBody = encodeURIComponent(`Check out this story from Planet Detroit:\n\n${title}\n${url}`);
-  const linkStyle = "color:#94a3b8;text-decoration:none;";
-  const sepStyle = "color:#cbd5e1;";
+  const linkStyle = "color:#64748b;text-decoration:none;";
+  const sepStyle = "color:#94a3b8;";
   return `<div style="margin-top:6px;font-size:11px;">
-    <span style="color:#94a3b8;">Share:</span>
+    <span style="color:#64748b;">Share:</span>
     <a href="https://bsky.app/intent/compose?text=${bskyText}" style="${linkStyle}" title="Share on Bluesky">Bluesky</a>
     <span style="${sepStyle}"> | </span>
     <a href="https://twitter.com/intent/tweet?url=${encodedUrl}&text=${xText}" style="${linkStyle}" title="Share on X">X</a>
