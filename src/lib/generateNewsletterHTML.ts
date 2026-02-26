@@ -650,7 +650,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Footer — text links instead of SVG icons (SVGs get stripped by email clients/ActiveCampaign)
   const socialLinksHTML = Object.values(SOCIAL_ICONS)
-    .map((icon) => `<a href="${icon.url}" style="color:#2982C4;text-decoration:none;font-weight:600;">${icon.title}</a>`)
+    .map((icon) => `<a href="${icon.url}" style="color:#ffffff;text-decoration:none;font-weight:600;">${icon.title}</a>`)
     .join(`<span style="color:rgba(255,255,255,0.3);"> &middot; </span>`);
 
   parts.push(`
