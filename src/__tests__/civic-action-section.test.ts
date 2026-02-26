@@ -48,8 +48,6 @@ function makeState(overrides: Partial<NewsletterState> = {}): NewsletterState {
     partnerPromo: null,
     ads: [],
     co2: null,
-    airQuality: null,
-    lakeLevels: null,
     sections: DEFAULT_SECTIONS,
     lastSaved: null,
     ...overrides,

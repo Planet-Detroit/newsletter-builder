@@ -15,8 +15,6 @@ import {
   CommentPeriod,
   AdSlot,
   CO2Data,
-  AirQualityData,
-  LakeLevelData,
   SponsorsData,
   SupportCTA,
   PartnerPromo,
@@ -73,8 +71,6 @@ const initialState: NewsletterState = {
   fundraisingCTA: DEFAULT_FUNDRAISING_CTA,
   ads: [],
   co2: null,
-  airQuality: null,
-  lakeLevels: null,
   sections: DEFAULT_SECTIONS,
   lastSaved: null,
 };
@@ -123,8 +119,6 @@ type Action =
   | { type: "SET_FUNDRAISING_CTA"; payload: FundraisingCTA }
   | { type: "SET_ADS"; payload: AdSlot[] }
   | { type: "SET_CO2"; payload: CO2Data | null }
-  | { type: "SET_AIR_QUALITY"; payload: AirQualityData | null }
-  | { type: "SET_LAKE_LEVELS"; payload: LakeLevelData | null }
   | { type: "UPDATE_SECTION_STATUS"; payload: { id: string; status: SectionStatus } }
   | { type: "TOGGLE_SECTION_ENABLED"; payload: string }
   | { type: "LOAD_STATE"; payload: NewsletterState }
@@ -263,10 +257,6 @@ function reducer(state: NewsletterState, action: Action): NewsletterState {
       return { ...state, ads: action.payload };
     case "SET_CO2":
       return { ...state, co2: action.payload };
-    case "SET_AIR_QUALITY":
-      return { ...state, airQuality: action.payload };
-    case "SET_LAKE_LEVELS":
-      return { ...state, lakeLevels: action.payload };
     case "UPDATE_SECTION_STATUS":
       return {
         ...state,

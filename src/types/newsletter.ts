@@ -143,22 +143,6 @@ export interface CO2Data {
   date: string;
 }
 
-export interface AirQualityData {
-  aqi: number;
-  category: string;
-  parameter: string;
-  color: string;
-  dateObserved: string;
-}
-
-export interface LakeLevelData {
-  erie: number | null;
-  michiganHuron: number | null;
-  erieChange: number | null;
-  michiganHuronChange: number | null;
-  date: string;
-}
-
 export interface StaffMember {
   id: string;
   name: string;
@@ -272,8 +256,6 @@ export interface NewsletterState {
   partnerPromo: PartnerPromo | null;
   ads: AdSlot[];
   co2: CO2Data | null;
-  airQuality: AirQualityData | null;
-  lakeLevels: LakeLevelData | null;
   sections: NewsletterSection[];
   lastSaved: string | null;
 }

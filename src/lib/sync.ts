@@ -19,7 +19,7 @@ export const SECTION_GROUPS: Record<string, (keyof NewsletterState)[]> = {
   partnerPromo: ["partnerPromo"],
   ads: ["ads"],
   sponsors: ["sponsors", "supportCTA", "featuredPromo"],
-  env: ["co2", "airQuality", "lakeLevels"],
+  env: ["co2"],
 };
 
 // Fields that are always taken from remote (UI/meta state)
