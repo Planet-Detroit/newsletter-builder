@@ -523,16 +523,8 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   // App Download promo
   if (isSectionEnabled(state, "app-download")) {
     parts.push(`
-<div style="padding:16px 32px;">
-  <div style="background:#f0f7fc;border-radius:8px;padding:24px;text-align:center;border:1px solid #d4e8f7;">
-    <div style="font-size:28px;margin-bottom:8px;">&#x1F4F1;</div>
-    <h3 style="font-size:18px;font-weight:bold;color:#1e293b;margin:0 0 6px;">Download the Planet Detroit App</h3>
-    <p style="font-size:14px;color:#555;margin:0 0 16px;line-height:1.5;">Get Michigan environmental news delivered straight to your phone.</p>
-    <div>
-      <a href="https://apps.apple.com/us/app/planet-detroit/id6750488771" style="display:inline-block;background:#1e293b;color:#ffffff;padding:10px 20px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:13px;margin:0 6px 8px;">App Store</a>
-      <a href="https://play.google.com/store/apps/details?id=com.planetdetroit.digestapp" style="display:inline-block;background:#1e293b;color:#ffffff;padding:10px 20px;text-decoration:none;font-weight:bold;border-radius:6px;font-size:13px;margin:0 6px 8px;">Google Play</a>
-    </div>
-  </div>
+<div style="padding:8px 32px;">
+  <p style="font-size:13px;color:#555;text-align:center;margin:0;line-height:1.5;">&#x1F4F1; <strong>Get the Planet Detroit app</strong> &mdash; Michigan environmental news on your phone.<br>Download for <a href="https://apps.apple.com/us/app/planet-detroit/id6750488771" style="color:#2982C4;text-decoration:none;font-weight:600;">iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.planetdetroit.digestapp" style="color:#2982C4;text-decoration:none;font-weight:600;">Android</a></p>
 </div>`);
   }
 
