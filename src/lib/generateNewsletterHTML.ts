@@ -390,42 +390,16 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     ? `<img src="${state.logoUrl}" alt="Planet Detroit" style="max-width:280px;height:auto;display:block;margin:0 auto 8px;" />`
     : `<h1 style="color:#1e293b;font-size:28px;margin:0;letter-spacing:1px;">PLANET DETROIT</h1>`;
 
-  // Environmental data strip — black & white minimalist with source links
+  // CO2 strip — single line with current/last year + "born" link
   let envStrip = "";
-  if (state.co2 || state.airQuality || state.lakeLevels) {
-    const cells: string[] = [];
-    if (state.co2) {
-      const changeSign = state.co2.change > 0 ? "+" : "";
-      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://gml.noaa.gov/ccgg/trends/weekly.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">CO&#8322;</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.co2.current}</div><div style="font-size:9px;color:#666;">${changeSign}${state.co2.change} ppm YoY</div></a></td>`);
-    }
-    if (state.airQuality) {
-      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.airnow.gov/?city=Detroit&state=MI" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Detroit Air</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.airQuality.aqi}</div><div style="font-size:9px;color:#666;">${state.airQuality.category}</div></a></td>`);
-    }
-    if (state.lakeLevels && state.lakeLevels.erie != null) {
-      const arrow = state.lakeLevels.erieChange != null
-        ? (state.lakeLevels.erieChange > 0 ? "\u2191" : state.lakeLevels.erieChange < 0 ? "\u2193" : "\u2192")
-        : "";
-      const changeText = state.lakeLevels.erieChange != null
-        ? `${arrow}${Math.abs(state.lakeLevels.erieChange)}m`
-        : "";
-      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.glerl.noaa.gov/data/wlevels/levels.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Lake Erie</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.lakeLevels.erie}m</div>${changeText ? `<div style="font-size:9px;color:#666;">${changeText}</div>` : ""}</a></td>`);
-    }
-    if (state.lakeLevels && state.lakeLevels.michiganHuron != null) {
-      const arrow = state.lakeLevels.michiganHuronChange != null
-        ? (state.lakeLevels.michiganHuronChange > 0 ? "\u2191" : state.lakeLevels.michiganHuronChange < 0 ? "\u2193" : "\u2192")
-        : "";
-      const changeText = state.lakeLevels.michiganHuronChange != null
-        ? `${arrow}${Math.abs(state.lakeLevels.michiganHuronChange)}m`
-        : "";
-      cells.push(`<td style="text-align:center;padding:6px 10px;"><a href="https://www.glerl.noaa.gov/data/wlevels/levels.html" style="text-decoration:none;color:inherit;"><div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">MI-Huron</div><div style="font-size:16px;font-weight:bold;color:#1a1a1a;letter-spacing:-0.5px;">${state.lakeLevels.michiganHuron}m</div>${changeText ? `<div style="font-size:9px;color:#666;">${changeText}</div>` : ""}</a></td>`);
-    }
-    // Add thin separator between cells
-    const styledCells = cells.map((cell, i) =>
-      i < cells.length - 1
-        ? cell.replace('<td style="text-align:center;padding:6px 10px;">', '<td style="text-align:center;padding:6px 10px;border-right:1px solid #e0e0e0;">')
-        : cell
-    );
-    envStrip = `<div style="border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;padding:10px 0;margin-top:16px;"><table role="presentation" style="width:100%;border-collapse:collapse;"><tr>${styledCells.join("")}</tr></table></div>`;
+  if (state.co2) {
+    const thisYear = state.co2.date ? new Date(state.co2.date).getFullYear() : new Date().getFullYear();
+    const lastYear = thisYear - 1;
+    const lastYearPpm = state.co2.lastYear != null ? `${state.co2.lastYear} ppm` : "n/a";
+    envStrip = `<div style="border-top:1px solid #e0e0e0;border-bottom:1px solid #e0e0e0;padding:10px 0;margin-top:16px;text-align:center;">
+  <a href="https://gml.noaa.gov/ccgg/trends/weekly.html" style="text-decoration:none;color:#1e293b;font-size:13px;line-height:1.5;">CO&#8322; <strong>${thisYear}</strong> ${state.co2.current} ppm / <strong>${lastYear}</strong> ${lastYearPpm}</a>
+  <br><a href="https://www.nature.org/en-us/get-involved/how-to-help/carbon-footprint-calculator/carbon-by-birth-year/" style="color:#2982C4;font-size:12px;text-decoration:none;">What was the CO&#8322; when you were born?</a>
+</div>`;
   }
 
   // Sponsors
