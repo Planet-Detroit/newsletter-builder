@@ -445,7 +445,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
 <div style="padding:8px 32px 16px;">
-  <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear Planet Detroiter,</strong><br><br>${state.intro.replace(/\n/g, "<br>")}</div>
+  <div style="font-size:16px;line-height:1.5;color:#333;"><strong>Dear Planet Detroiter,</strong><br><br>${state.intro.replace(/\n/g, "<br>")}</div>
   <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
     <tr>
       <td style="vertical-align:middle;padding-right:14px;">
@@ -458,8 +458,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
       </td>
     </tr>
   </table>
-</div>
-<div style="padding:0 32px;"><div style="height:1px;background:#e2e8f0;"></div></div>`);
+</div>`);
   }
 
   // P.S. CTA
