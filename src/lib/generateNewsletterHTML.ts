@@ -434,7 +434,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 
   // Header
   parts.push(`
-<div style="background:#ffffff;padding:24px 32px;text-align:center;">
+<div style="background:#ffffff;padding:24px 32px 12px;text-align:center;">
   ${logoHTML}
   ${issueDate ? `<p style="color:#1e293b;font-size:14px;font-weight:bold;margin:8px 0 0;">${issueDate}</p>` : ""}
   ${envStrip}
@@ -444,7 +444,7 @@ export function generateNewsletterHTML(state: NewsletterState): string {
   if (state.intro && isSectionEnabled(state, "intro")) {
     const staff = STAFF_MEMBERS.find((m) => m.id === state.signoffStaffId) || STAFF_MEMBERS[0];
     parts.push(`
-<div style="padding:16px 32px;">
+<div style="padding:8px 32px 16px;">
   <div style="font-size:16px;line-height:1.7;color:#333;"><strong>Dear Planet Detroiter,</strong><br><br>${state.intro.replace(/\n/g, "<br>")}</div>
   <table role="presentation" style="margin-top:24px;border-collapse:collapse;">
     <tr>
