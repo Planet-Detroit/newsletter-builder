@@ -122,6 +122,24 @@ export default function IntroEditor() {
     if (!url) return;
     execFmt("createLink", url);
   };
+  const handleHighlight = (color: string) => {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return;
+    // Check if selection already has this background color — toggle off if so
+    const parent = sel.anchorNode?.parentElement;
+    if (parent && parent.tagName === "SPAN" && parent.style.backgroundColor) {
+      const current = parent.style.backgroundColor;
+      // Normalize to compare (browsers store as rgb)
+      const temp = document.createElement("span");
+      temp.style.backgroundColor = color;
+      if (current === temp.style.backgroundColor) {
+        // Remove highlight by unwrapping the span
+        execFmt("removeFormat");
+        return;
+      }
+    }
+    execFmt("hiliteColor", color);
+  };
   const insertEmoji = (emoji: string) => {
     editorRef.current?.focus();
     document.execCommand("insertText", false, emoji);
@@ -136,11 +154,13 @@ export default function IntroEditor() {
     const text = e.clipboardData.getData("text/plain");
 
     if (html) {
-      // Strip to only allow basic tags
+      // Strip to only allow basic tags + span (for highlights)
       const cleaned = html
-        .replace(/<(?!\/?(?:strong|em|b|i|a|br|p|div)\b)[^>]*>/gi, "")
-        .replace(/ style="[^"]*"/gi, "")
-        .replace(/ class="[^"]*"/gi, "");
+        .replace(/<(?!\/?(?:strong|em|b|i|a|br|p|div|span)\b)[^>]*>/gi, "")
+        .replace(/ class="[^"]*"/gi, "")
+        // Preserve background-color styles on spans, strip all other styles
+        .replace(/<span[^>]*style="[^"]*?(background-color:\s*[^;"]+;?)[^"]*"[^>]*>/gi, '<span style="$1">')
+        .replace(/<(?!span\b)([^>]*) style="[^"]*"/gi, "<$1");
       document.execCommand("insertHTML", false, cleaned);
     } else {
       document.execCommand("insertText", false, text);
@@ -285,6 +305,21 @@ export default function IntroEditor() {
             title="Insert link"
           >
             Link
+          </button>
+          <div className="w-px h-4 bg-pd-border mx-0.5" />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); handleHighlight("#fff59d"); }}
+            className="px-2 py-1 text-xs rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+            title="Highlight yellow (click again to remove)"
+          >
+            <span style={{ backgroundColor: "#fff59d", padding: "1px 4px", borderRadius: "2px" }}>A</span>
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); handleHighlight("#b3e5fc"); }}
+            className="px-2 py-1 text-xs rounded hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-pd-border cursor-pointer"
+            title="Highlight blue (click again to remove)"
+          >
+            <span style={{ backgroundColor: "#b3e5fc", padding: "1px 4px", borderRadius: "2px" }}>A</span>
           </button>
           <div ref={emojiRef} style={{ position: "relative" }}>
             <button
