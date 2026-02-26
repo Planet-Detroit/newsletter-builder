@@ -410,11 +410,6 @@ export function generateNewsletterHTML(state: NewsletterState): string {
     .map((s) => (s.url ? `<a href="${s.url}" style="color:#2982C4;text-decoration:none;">${s.name}</a>` : s.name))
     .join(" 🌎 ");
 
-  // Social icons
-  const socialIconsHTML = Object.values(SOCIAL_ICONS)
-    .map((icon) => `<a href="${icon.url}" style="display:inline-block;margin:0 6px;" title="${icon.title}">${icon.svg}</a>`)
-    .join("");
-
   // ── Build the HTML ─────────────────────────────────────────────────────
 
   const parts: string[] = [];
@@ -653,13 +648,16 @@ export function generateNewsletterHTML(state: NewsletterState): string {
 </div>`);
   }
 
-  // Footer
+  // Footer — text links instead of SVG icons (SVGs get stripped by email clients/ActiveCampaign)
+  const socialLinksHTML = Object.values(SOCIAL_ICONS)
+    .map((icon) => `<a href="${icon.url}" style="color:#2982C4;text-decoration:none;font-weight:600;">${icon.title}</a>`)
+    .join(`<span style="color:rgba(255,255,255,0.3);"> &middot; </span>`);
+
   parts.push(`
 <div style="background:#1e293b;padding:24px;text-align:center;">
   <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:4px 0;"><a href="https://planetdetroit.org" style="color:#2982C4;">planetdetroit.org</a></p>
   <p style="color:rgba(255,255,255,0.9);font-size:12px;font-style:italic;margin:6px 0;">Stay informed about your environment and your health.</p>
-  <div style="margin:12px 0 8px;" role="navigation" aria-label="Social media links">${socialIconsHTML}</div>
-  <p style="color:rgba(255,255,255,0.5);font-size:11px;margin:8px 0 4px;">The Green Garage &middot; 4444 Second Avenue, Detroit, MI 48201</p>
+  <p style="margin:12px 0 8px;font-size:12px;">${socialLinksHTML}</p>
 </div>`);
 
   // Document close
